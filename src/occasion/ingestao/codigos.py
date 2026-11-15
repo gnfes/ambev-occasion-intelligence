@@ -92,7 +92,6 @@ REFRI_MARCA: dict[str, Descricao] = {
     "8208302": ("JAO LIGHT", ('2008-09',)),
     "8208402": ("ALOA LIGHT", ('2008-09',)),
     "8208502": ("XODO DA BAHIA LIGHT", ('2008-09',)),
-    "8212906": ("REFRIGERANTE DE QUININO DIETETICO", ('2008-09', '2017-18')),
     "8201017": ("BEBIDA REFRIGERANTE, TIPO H2O", ('2017-18',)),
 }
 MATE: dict[str, Descricao] = {
@@ -104,9 +103,14 @@ AGUA_TONICA: dict[str, Descricao] = {
     "8204902": ("AGUA TONICA TRADICIONAL", ('2008-09', '2017-18')),
     "8209002": ("AGUA TONICA LIGHT", ('2008-09', '2017-18')),
     "8212902": ("AGUA TONICA DIET", ('2008-09', '2017-18')),
+    # Refrigerante de quinino é água tônica, apesar do nome no cadastro.
+    "8212906": ("REFRIGERANTE DE QUININO DIETETICO", ('2008-09', '2017-18')),
 }
 
 # Lista de refrigerante proposta inicialmente: guaraná + refrigerantes por sabor.
+# "Genérico" aqui quer dizer "da lista proposta", não "sem marca": a lista
+# inclui Sprite (8200407) e Paraguai (8205402, 8209102). O alvo decidido
+# (opção A) usa a união com REFRI_MARCA, então a divisão não afeta o alvo.
 REFRI_GENERICO: dict[str, Descricao] = GUARANA | REFRI_GENERICO_SEM_GUARANA
 
 # Nome da flag no parquet -> conjunto de códigos.
