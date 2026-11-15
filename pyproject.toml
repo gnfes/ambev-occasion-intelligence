@@ -21,6 +21,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["dados: usa os microdados reais da POF (pula se não existirem)"]
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
