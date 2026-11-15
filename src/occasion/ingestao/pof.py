@@ -124,10 +124,12 @@ def ler_2017_2018(raiz: Path = RAW_DIR) -> pd.DataFrame:
     df["situacao"] = df["TIPO_SITUACAO_REG"]
     df["estrato"] = df["ESTRATO_POF"]
     df["dia_registro"] = df["QUADRO"].map({72: 1, 73: 2})
-    df["dia_semana"] = df["DIA_SEMANA"].map(lambda s: DIAS_SEMANA.get(_sem_acento(s)) if isinstance(s, str) else None)
+    dias = {v: DIAS_SEMANA.get(_sem_acento(v)) for v in df["DIA_SEMANA"].dropna().unique()}
+    df["dia_semana"] = df["DIA_SEMANA"].map(dias)
     df["hora"] = pd.to_numeric(df["V9015"].str.rstrip("Hh"), errors="coerce")
     df["local_refeicao"] = df["V9018"]
-    df["fora_de_casa"] = df["V9018"].map(lambda v: pd.NA if v == 9 or pd.isna(v) else v != 1)
+    # 1 = em casa ou levado de casa; 2 a 7 = fora de casa; 9 = não determinado.
+    df["fora_de_casa"] = df["V9018"].map({1: False, **{v: True for v in range(2, 8)}})
     df["refeicao"] = df["V9017"]
     df["dia_atipico"] = df["DIA_ATIPICO"].map({1: True, 2: False})
     df["cod_alimento"] = df["V9001"]
