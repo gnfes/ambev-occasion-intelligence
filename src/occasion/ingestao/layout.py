@@ -39,16 +39,18 @@ def _ler_texto(caminho: Path) -> str:
 
 def layout_sas(programa_sas: Path, arquivo: str) -> list[Campo]:
     """Extrai os campos do bloco INPUT que lê `arquivo` no programa SAS."""
-    texto = _ler_texto(programa_sas)
-    pos = texto.upper().find(arquivo.upper())
-    if pos < 0:
-        raise KeyError(f"{arquivo} não aparece em {programa_sas}")
-    inicio = texto.upper().find("INPUT", pos)
-    fim = texto.find(";", inicio)
-    # o ";" final fica grudado no último campo; inclui a linha inteira
-    fim = texto.find("\n", fim)
-    bloco = texto[inicio:fim]
-    bloco = re.sub(r"/\*.*?\*/", " ", bloco, flags=re.S)
+    # Comentários saem antes de tudo: um nome de arquivo ou um ";" dentro de
+    # um comentário não pode definir onde o bloco começa ou termina.
+    texto = re.sub(r"/\*.*?\*/", " ", _ler_texto(programa_sas), flags=re.S)
+    nome = re.escape(re.sub(r"\.txt$", "", arquivo, flags=re.I))
+    infile = re.search(rf'INFILE\s+"(?:[^"]*[\\/])?{nome}(?:\.txt)?"', texto, flags=re.I)
+    if infile is None:
+        raise KeyError(f"{arquivo} não aparece num INFILE de {programa_sas}")
+    entrada = re.compile(r"\bINPUT\b", flags=re.I).search(texto, infile.end())
+    if entrada is None:
+        raise ValueError(f"Bloco INPUT de {arquivo} não encontrado")
+    fim = texto.find(";", entrada.end())
+    bloco = texto[entrada.end() : fim + 1 if fim >= 0 else len(texto)]
     campos = [
         Campo(
             nome=m.group(2).replace(",", ""),

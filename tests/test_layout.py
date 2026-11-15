@@ -5,10 +5,16 @@ import pytest
 from occasion.ingestao.layout import layout_sas, ler_fwf
 
 SAS = """\
+/* Este programa lê EXEMPLO.txt e também EXEMPLO_LONGO.txt */
+DATA LONGO;
+INFILE "...\\EXEMPLO_LONGO.txt";
+INPUT
+@01  OUTRO     9. ;
+run;
 DATA EXEMPLO;
 INFILE "...\\EXEMPLO.txt";
 INPUT
-@01  UF        2.   /* UNIDADE DA FEDERAÇÃO */
+@01  UF        2.   /* UNIDADE DA FEDERAÇÃO; ver dicionário */
 @03  COD       $7.
 @10  HORA      $3.
 @13  PESO      6.2
@@ -25,8 +31,11 @@ def programa(tmp_path: Path) -> Path:
 
 
 def test_layout_le_posicoes_e_tipos(programa):
-    campos = {c.nome: c for c in layout_sas(programa, "EXEMPLO.txt")}
+    # o nome em comentário e o arquivo de nome mais longo não podem ser
+    # confundidos com EXEMPLO, e o ";" do comentário não encerra o bloco
+    campos = {c.nome: c for c in layout_sas(programa, "EXEMPLO")}
     assert list(campos) == ["UF", "COD", "HORA", "PESO", "RENDA"]
+    assert [c.nome for c in layout_sas(programa, "EXEMPLO_LONGO.txt")] == ["OUTRO"]
     assert campos["COD"].colspec == (2, 9) and campos["COD"].texto
     assert campos["PESO"].decimais == 2 and not campos["PESO"].texto
 

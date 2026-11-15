@@ -34,33 +34,23 @@ def pasta_edicao(edicao: str, raiz: Path = RAW_DIR) -> Path:
     return raiz / f"pof_{edicao}"
 
 
-def baixar_arquivo(url: str, destino: Path, tamanho_esperado: int | None = None) -> Path:
-    """Baixa `url` para `destino` só se o arquivo ainda não existe completo.
+def baixar_arquivo(url: str, destino: Path) -> Path:
+    """Baixa `url` para `destino`.
 
-    O download vai para um arquivo `.part` e só é renomeado no fim, então um
-    download interrompido nunca é confundido com um arquivo pronto.
+    O download vai para um arquivo `.part`, o tamanho é conferido com o
+    Content-Length da própria resposta e só então o arquivo é renomeado, então
+    um download interrompido nunca é confundido com um arquivo pronto.
     """
-    if destino.exists() and (tamanho_esperado is None or destino.stat().st_size == tamanho_esperado):
-        return destino
     destino.parent.mkdir(parents=True, exist_ok=True)
     parcial = destino.with_suffix(destino.suffix + ".part")
     with urllib.request.urlopen(url, timeout=120) as resp, open(parcial, "wb") as out:
+        esperado = resp.headers.get("Content-Length")
         shutil.copyfileobj(resp, out, length=1 << 20)
-    if tamanho_esperado is not None and parcial.stat().st_size != tamanho_esperado:
+    if esperado is not None and parcial.stat().st_size != int(esperado):
         parcial.unlink()
         raise OSError(f"Download incompleto de {url}")
     parcial.replace(destino)
     return destino
-
-
-def _tamanho_remoto(url: str) -> int | None:
-    req = urllib.request.Request(url, method="HEAD")
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            valor = resp.headers.get("Content-Length")
-            return int(valor) if valor else None
-    except OSError:
-        return None
 
 
 def _extrair(zip_local: Path, destino: Path) -> None:
@@ -77,25 +67,29 @@ def _extrair(zip_local: Path, destino: Path) -> None:
             zf.extract(info, destino)
 
 
+def _assinatura(zip_local: Path) -> str:
+    return f"{zip_local.name} {zip_local.stat().st_size}"
+
+
 def baixar_edicao(edicao: str, raiz: Path = RAW_DIR, extrair: bool = True) -> Path:
     """Baixa e extrai os pacotes de uma edição em `data/raw/pof_<edicao>/`.
 
-    Idempotente: zips completos não são baixados de novo e cada zip só é
-    extraído uma vez (marcado por um arquivo `.extraido`).
+    Idempotente: um zip só é baixado de novo se não existir ou não for um zip
+    válido, e só é extraído de novo se a marca `.extraido` da pasta não
+    corresponder ao zip atual (nome e tamanho).
     """
     info = PACOTES[edicao]
     destino_base = pasta_edicao(edicao, raiz)
     for chave in ("dados", "documentacao", "leitura", "tradutores"):
         nome = info[chave]
-        url = f"{FTP_BASE}/{info['pasta']}/{nome}"
         zip_local = destino_base / "zips" / nome
-        if not zip_local.exists():
-            baixar_arquivo(url, zip_local, _tamanho_remoto(url))
+        if not zip_local.exists() or not zipfile.is_zipfile(zip_local):
+            baixar_arquivo(f"{FTP_BASE}/{info['pasta']}/{nome}", zip_local)
         if extrair:
             marca = destino_base / chave / ".extraido"
-            if not marca.exists():
+            if not marca.exists() or marca.read_text().strip() != _assinatura(zip_local):
                 _extrair(zip_local, destino_base / chave)
-                marca.touch()
+                marca.write_text(_assinatura(zip_local))
     return destino_base
 
 
