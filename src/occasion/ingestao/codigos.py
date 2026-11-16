@@ -31,8 +31,7 @@ PIZZA: dict[str, Descricao] = {
     "8500937": ("PIZZA VEGETARIANA", ('2017-18',)),
     "8500939": ("PIZZA HAWAIANA (QUEIJO, PRESUNTO E ABACAXI)", ('2017-18',)),
     "8508017": ("PIZZA PORTUGUESA LIGHT", ('2008-09', '2017-18')),
-}
-PIZZA_LIGHT: dict[str, Descricao] = {
+    # Pizzas light que só existem no cadastro de 2008-09.
     "8508003": ("PIZZA PRONTA LIGHT", ('2008-09',)),
     "8508014": ("PIZZA CALABREZA LIGHT", ('2008-09',)),
     "8508015": ("PIZZA MUZZARELA LIGHT", ('2008-09',)),
@@ -114,13 +113,12 @@ AGUA_TONICA: dict[str, Descricao] = {
 REFRI_GENERICO: dict[str, Descricao] = GUARANA | REFRI_GENERICO_SEM_GUARANA
 
 # Nome da flag no parquet -> conjunto de códigos.
-# Pizza doce não entra em nenhuma flag de pizza.
+# Pizza doce não entra na flag de pizza; as pizzas light entram.
 FLAGS: dict[str, frozenset[str]] = {
     "pizza": frozenset(PIZZA),
     "guarana": frozenset(GUARANA),
     "refri_generico": frozenset(REFRI_GENERICO),
     "refri_marca": frozenset(REFRI_MARCA),
-    "pizza_light": frozenset(PIZZA_LIGHT),
     "mini_pizza": frozenset(MINI_PIZZA),
     "pizza_doce": frozenset(PIZZA_DOCE),
     "mate": frozenset(MATE),

@@ -18,8 +18,8 @@ pytestmark = pytest.mark.dados
 # Números oficiais publicados pelo IBGE para o bloco de consumo alimentar pessoal
 # (moradores de 10 anos ou mais com dois dias de registro).
 ESPERADO = {
-    "2008_2009": {"linhas": 735_814, "pessoas": 34_003, "pizza_dias": 2.24, "pizza_refri": 57.6},
-    "2017_2018": {"linhas": 1_175_390, "pessoas": 46_164, "pizza_dias": 2.62, "pizza_refri": 43.4},
+    "2008_2009": {"linhas": 735_814, "pessoas": 34_003, "pizza_dias": 2.24, "pizza_refri": 57.54},
+    "2017_2018": {"linhas": 1_175_390, "pessoas": 46_164, "pizza_dias": 2.62, "pizza_refri": 43.42},
 }
 
 
@@ -91,7 +91,7 @@ def test_pizza_com_refrigerante_na_mesma_ocasiao(edicao):
     nome, df = edicao
     com_pizza = _ocasioes(df).query("pizza")
     taxa = 100 * np.average(com_pizza["refri"], weights=com_pizza["peso"])
-    assert taxa == pytest.approx(ESPERADO[nome]["pizza_refri"], abs=0.1)
+    assert taxa == pytest.approx(ESPERADO[nome]["pizza_refri"], abs=0.01)
 
 
 def test_2017_lista_generica_reproduz_32_7():
