@@ -54,28 +54,59 @@ def _gravar(raiz: Path, edicao: str, blocos: dict, dados: dict[str, list[dict]])
 
 # (nome, largura, texto, decimais)
 CONSUMO_2017 = [
-    ("UF", 2, False, 0), ("ESTRATO_POF", 4, False, 0), ("TIPO_SITUACAO_REG", 1, False, 0),
-    ("COD_UPA", 9, False, 0), ("NUM_DOM", 2, False, 0), ("NUM_UC", 1, False, 0),
-    ("COD_INFORMANTE", 2, False, 0), ("QUADRO", 2, False, 0), ("V9001", 7, True, 0),
-    ("V9015", 3, True, 0), ("V9017", 1, False, 0), ("V9018", 1, False, 0),
-    ("QTD", 8, False, 2), ("PESO_FINAL", 15, False, 8), ("RENDA_TOTAL", 10, False, 2),
-    ("DIA_SEMANA", 15, True, 0), ("DIA_ATIPICO", 1, False, 0),
+    ("UF", 2, False, 0),
+    ("ESTRATO_POF", 4, False, 0),
+    ("TIPO_SITUACAO_REG", 1, False, 0),
+    ("COD_UPA", 9, False, 0),
+    ("NUM_DOM", 2, False, 0),
+    ("NUM_UC", 1, False, 0),
+    ("COD_INFORMANTE", 2, False, 0),
+    ("QUADRO", 2, False, 0),
+    ("V9001", 7, True, 0),
+    ("V9015", 3, True, 0),
+    ("V9017", 1, False, 0),
+    ("V9018", 1, False, 0),
+    ("QTD", 8, False, 2),
+    ("PESO_FINAL", 15, False, 8),
+    ("RENDA_TOTAL", 10, False, 2),
+    ("DIA_SEMANA", 15, True, 0),
+    ("DIA_ATIPICO", 1, False, 0),
 ]
 MORADOR_2017 = [
-    ("COD_UPA", 9, False, 0), ("NUM_DOM", 2, False, 0), ("NUM_UC", 1, False, 0),
-    ("COD_INFORMANTE", 2, False, 0), ("V0403", 3, False, 0), ("V0404", 1, False, 0),
+    ("COD_UPA", 9, False, 0),
+    ("NUM_DOM", 2, False, 0),
+    ("NUM_UC", 1, False, 0),
+    ("COD_INFORMANTE", 2, False, 0),
+    ("V0403", 3, False, 0),
+    ("V0404", 1, False, 0),
 ]
 CONSUMO_2008 = [
-    ("COD_UF", 2, False, 0), ("NUM_SEQ", 3, False, 0), ("NUM_DV", 1, False, 0),
-    ("NUM_DOM", 2, False, 0), ("NUM_UC", 1, False, 0), ("COD_INFORMANTE", 2, False, 0),
-    ("ESTRATO_POF", 4, False, 0), ("PESO_FINAL", 14, False, 8), ("NUM_QUADRO", 2, False, 0),
-    ("V9018", 1, False, 0), ("V9015", 2, False, 0), ("V9001", 7, True, 0),
-    ("RENDA_TOTAL", 10, False, 2), ("QTD_FINAL", 8, False, 2), ("DIA_SEMANA", 1, False, 0),
+    ("COD_UF", 2, False, 0),
+    ("NUM_SEQ", 3, False, 0),
+    ("NUM_DV", 1, False, 0),
+    ("NUM_DOM", 2, False, 0),
+    ("NUM_UC", 1, False, 0),
+    ("COD_INFORMANTE", 2, False, 0),
+    ("ESTRATO_POF", 4, False, 0),
+    ("PESO_FINAL", 14, False, 8),
+    ("NUM_QUADRO", 2, False, 0),
+    ("V9018", 1, False, 0),
+    ("V9015", 2, False, 0),
+    ("V9001", 7, True, 0),
+    ("RENDA_TOTAL", 10, False, 2),
+    ("QTD_FINAL", 8, False, 2),
+    ("DIA_SEMANA", 1, False, 0),
 ]
 MORADOR_2008 = [
-    ("COD_UF", 2, False, 0), ("NUM_SEQ", 3, False, 0), ("NUM_DV", 1, False, 0),
-    ("NUM_DOM", 2, False, 0), ("NUM_UC", 1, False, 0), ("COD_INFORMANTE", 2, False, 0),
-    ("IDADE_ANOS", 3, False, 0), ("V0405", 1, False, 0), ("TIPO_SITUACAO_REG", 1, False, 0),
+    ("COD_UF", 2, False, 0),
+    ("NUM_SEQ", 3, False, 0),
+    ("NUM_DV", 1, False, 0),
+    ("NUM_DOM", 2, False, 0),
+    ("NUM_UC", 1, False, 0),
+    ("COD_INFORMANTE", 2, False, 0),
+    ("IDADE_ANOS", 3, False, 0),
+    ("V0405", 1, False, 0),
+    ("TIPO_SITUACAO_REG", 1, False, 0),
 ]
 
 
@@ -83,38 +114,88 @@ MORADOR_2008 = [
 def raiz(tmp_path: Path) -> Path:
     raiz = tmp_path / "raw"
     pessoa = {"COD_UPA": 350000123, "NUM_DOM": 4, "NUM_UC": 1, "COD_INFORMANTE": 2}
-    comum = {**pessoa, "UF": 35, "ESTRATO_POF": 3501, "TIPO_SITUACAO_REG": 1,
-             "PESO_FINAL": "123456789012345", "RENDA_TOTAL": "1234567", "DIA_ATIPICO": 2}
+    comum = {
+        **pessoa,
+        "UF": 35,
+        "ESTRATO_POF": 3501,
+        "TIPO_SITUACAO_REG": 1,
+        "PESO_FINAL": "123456789012345",
+        "RENDA_TOTAL": "1234567",
+        "DIA_ATIPICO": 2,
+    }
     _gravar(
         raiz,
         "2017_2018",
         {"CONSUMO_ALIMENTAR": CONSUMO_2017, "MORADOR": MORADOR_2017},
         {
             "CONSUMO_ALIMENTAR": [
-                {**comum, "QUADRO": 72, "V9001": PIZZA, "V9015": "20H", "V9017": 5,
-                 "V9018": 3, "QTD": "25000", "DIA_SEMANA": "Sábado"},
-                {**comum, "QUADRO": 72, "V9001": GUARANA, "V9015": "20H", "V9017": 5,
-                 "V9018": 3, "QTD": "35000", "DIA_SEMANA": "Sábado"},
-                {**comum, "QUADRO": 73, "V9001": ARROZ, "V9015": "12H", "V9017": 3,
-                 "V9018": 1, "QTD": "15000", "DIA_SEMANA": "Terça-feira"},
+                {
+                    **comum,
+                    "QUADRO": 72,
+                    "V9001": PIZZA,
+                    "V9015": "20H",
+                    "V9017": 5,
+                    "V9018": 3,
+                    "QTD": "25000",
+                    "DIA_SEMANA": "Sábado",
+                },
+                {
+                    **comum,
+                    "QUADRO": 72,
+                    "V9001": GUARANA,
+                    "V9015": "20H",
+                    "V9017": 5,
+                    "V9018": 3,
+                    "QTD": "35000",
+                    "DIA_SEMANA": "Sábado",
+                },
+                {
+                    **comum,
+                    "QUADRO": 73,
+                    "V9001": ARROZ,
+                    "V9015": "12H",
+                    "V9017": 3,
+                    "V9018": 1,
+                    "QTD": "15000",
+                    "DIA_SEMANA": "Terça-feira",
+                },
             ],
             "MORADOR": [{**pessoa, "V0403": 31, "V0404": 2}],
         },
     )
-    pessoa = {"COD_UF": 29, "NUM_SEQ": 7, "NUM_DV": 3, "NUM_DOM": 1, "NUM_UC": 1,
-              "COD_INFORMANTE": 1}
-    comum = {**pessoa, "ESTRATO_POF": 2901, "PESO_FINAL": "50000000000",
-             "RENDA_TOTAL": "250000"}
+    pessoa = {
+        "COD_UF": 29,
+        "NUM_SEQ": 7,
+        "NUM_DV": 3,
+        "NUM_DOM": 1,
+        "NUM_UC": 1,
+        "COD_INFORMANTE": 1,
+    }
+    comum = {**pessoa, "ESTRATO_POF": 2901, "PESO_FINAL": "50000000000", "RENDA_TOTAL": "250000"}
     _gravar(
         raiz,
         "2008_2009",
         {"T_CONSUMO_S": CONSUMO_2008, "T_MORADOR_S": MORADOR_2008},
         {
             "T_CONSUMO_S": [
-                {**comum, "NUM_QUADRO": 71, "V9018": 2, "V9015": 19, "V9001": PIZZA,
-                 "QTD_FINAL": "20000", "DIA_SEMANA": 5},
-                {**comum, "NUM_QUADRO": 72, "V9018": 1, "V9015": 7, "V9001": ARROZ,
-                 "QTD_FINAL": "10000", "DIA_SEMANA": 6},
+                {
+                    **comum,
+                    "NUM_QUADRO": 71,
+                    "V9018": 2,
+                    "V9015": 19,
+                    "V9001": PIZZA,
+                    "QTD_FINAL": "20000",
+                    "DIA_SEMANA": 5,
+                },
+                {
+                    **comum,
+                    "NUM_QUADRO": 72,
+                    "V9018": 1,
+                    "V9015": 7,
+                    "V9001": ARROZ,
+                    "QTD_FINAL": "10000",
+                    "DIA_SEMANA": 6,
+                },
             ],
             "T_MORADOR_S": [{**pessoa, "IDADE_ANOS": 44, "V0405": 1, "TIPO_SITUACAO_REG": 2}],
         },

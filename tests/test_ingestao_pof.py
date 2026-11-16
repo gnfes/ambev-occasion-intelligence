@@ -65,7 +65,16 @@ def test_pesos_positivos_e_constantes_por_pessoa(edicao):
 
 def test_campos_basicos_preenchidos(edicao):
     _, df = edicao
-    for coluna in ["uf", "regiao", "situacao", "dia_registro", "dia_semana", "hora", "idade", "sexo"]:
+    for coluna in [
+        "uf",
+        "regiao",
+        "situacao",
+        "dia_registro",
+        "dia_semana",
+        "hora",
+        "idade",
+        "sexo",
+    ]:
         assert df[coluna].notna().all(), coluna
     assert df["hora"].between(0, 23).all()
     assert df["dia_semana"].between(1, 7).all()
@@ -82,7 +91,9 @@ def test_codigos_de_pizza_presentes(edicao):
 
 def test_pizza_em_dias_pessoa_ponderados(edicao):
     nome, df = edicao
-    dias = df.groupby(["id_pessoa", "dia_registro"]).agg(pizza=("pizza", "max"), peso=("peso", "first"))
+    dias = df.groupby(["id_pessoa", "dia_registro"]).agg(
+        pizza=("pizza", "max"), peso=("peso", "first")
+    )
     taxa = 100 * np.average(dias["pizza"], weights=dias["peso"])
     assert taxa == pytest.approx(ESPERADO[nome]["pizza_dias"], abs=0.01)
 
