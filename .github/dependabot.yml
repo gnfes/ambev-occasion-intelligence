@@ -7,3 +7,16 @@ updates:
       interval: monthly
     commit-message:
       prefix: ci
+
+  # Um PR mensal agrupando as dependências Python (uv.lock); alertas de
+  # segurança continuam saindo na hora, em PR próprio.
+  - package-ecosystem: uv
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+    groups:
+      python:
+        patterns: ["*"]
