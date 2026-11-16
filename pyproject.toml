@@ -1,6 +1,7 @@
 [project]
 name = "ambev-occasion-intelligence"
 version = "0.1.0"
+description = "Occasion Intelligence: propensão de pizza com refrigerante a partir da POF/IBGE"
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.163.1",
@@ -19,5 +20,12 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["dados: usa os microdados reais da POF (pula se não existirem)"]
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "occasion"
