@@ -185,6 +185,8 @@ def raiz_2017(tmp_path: Path) -> Path:
             "MORADOR": [
                 {**P1_2017, "V0403": 31, "V0404": 2},
                 {**P2_2017, "V0403": 58, "V0404": 1},
+                # criança da mesma UC: não tem consumo, mas conta na composição
+                {**P1_2017, "COD_INFORMANTE": 5, "V0403": 11, "V0404": 1},
             ],
         },
     )
@@ -225,6 +227,8 @@ def test_2017_2018_harmoniza_campos(raiz_2017, tmp_path):
         "35000012304103",
         "35000012304109",
     ]
+    assert (df["id_setor"] == "350000123").all()
+    assert (df["id_domicilio"] == "35000012304").all()
     assert (df["edicao"] == "2017-18").all()
     assert (df["uf"] == 35).all() and (df["estrato"] == 3501).all()
     assert (df["regiao"] == "Sudeste").all() and (df["situacao"] == "urbano").all()
@@ -251,12 +255,20 @@ def test_2017_2018_casos_de_borda(raiz_2017, tmp_path):
     # cada pessoa com o próprio morador; quem não tem MORADOR fica, com NA
     assert df["idade"].tolist() == [31, 31, 31, 58, pd.NA]
     assert df["sexo"].tolist() == [2, 2, 2, 1, pd.NA]
+    # composição contada na UC inteira, inclusive para quem não tem MORADOR
+    assert (df["n_moradores"] == 3).all()
+    assert df["tem_crianca"].all()
 
 
 def test_2008_2009_harmoniza_campos(raiz_2008, tmp_path):
     df = pd.read_parquet(processar("2008_2009", raiz=raiz_2008, destino=tmp_path, baixar=False))
     assert list(df.columns) == COLUNAS
     assert df["id_pessoa"].tolist() == ["29007301101", "29007301101", "29007301102"]
+    assert (df["id_setor"] == "290073").all()
+    assert (df["id_domicilio"] == "29007301").all()
+    # 12 anos completos já não é criança (ECA, art. 2º)
+    assert (df["n_moradores"] == 2).all()
+    assert not df["tem_crianca"].any()
     assert (df["edicao"] == "2008-09").all()
     assert (df["uf"] == 29).all() and (df["estrato"] == 2901).all()
     assert (df["regiao"] == "Nordeste").all() and (df["situacao"] == "rural").all()

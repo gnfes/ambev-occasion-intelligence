@@ -16,6 +16,10 @@ from occasion.ingestao.download import baixar_edicao, pasta_edicao
 from occasion.ingestao.layout import layout_sas, ler_fwf
 from occasion.paths import PROCESSED_DIR, RAW_DIR
 
+# Criança = menos de 12 anos completos (Estatuto da Criança e do Adolescente,
+# Lei 8.069/1990, art. 2º).
+IDADE_CRIANCA = 12
+
 REGIOES = {1: "Norte", 2: "Nordeste", 3: "Sudeste", 4: "Sul", 5: "Centro-Oeste"}
 
 # 1 = segunda ... 7 = domingo, como no dicionário de 2008-09.
@@ -32,6 +36,8 @@ DIAS_SEMANA = {
 COLUNAS = [
     "edicao",
     "id_pessoa",
+    "id_domicilio",
+    "id_setor",
     "uf",
     "regiao",
     "situacao",
@@ -49,6 +55,8 @@ COLUNAS = [
     "renda",
     "idade",
     "sexo",
+    "n_moradores",
+    "tem_crianca",
     *codigos.FLAGS,
 ]
 
@@ -73,6 +81,18 @@ def _flags(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _composicao(morador: pd.DataFrame, chave_uc: list[str], idade: str) -> pd.DataFrame:
+    """Moradores e presença de criança por unidade de consumo (UC).
+
+    A UC é a mesma unidade da renda (`RENDA_TOTAL`), e quase todo domicílio
+    tem uma só UC.
+    """
+    crianca = morador[chave_uc].assign(crianca=morador[idade] < IDADE_CRIANCA)
+    return crianca.groupby(chave_uc, as_index=False).agg(
+        n_moradores=("crianca", "size"), tem_crianca=("crianca", "any")
+    )
+
+
 def _finalizar(df: pd.DataFrame) -> pd.DataFrame:
     df["regiao"] = (df["uf"] // 10).map(REGIOES)
     df["situacao"] = df["situacao"].map({1: "urbano", 2: "rural"})
@@ -89,6 +109,8 @@ def _finalizar(df: pd.DataFrame) -> pd.DataFrame:
         "dia_atipico": "boolean",
         "idade": "Int16",
         "sexo": "Int8",
+        "n_moradores": "Int8",
+        "tem_crianca": "boolean",
     }
     return df[COLUNAS].astype(tipos).reset_index(drop=True)
 
@@ -127,10 +149,15 @@ def ler_2017_2018(raiz: Path = RAW_DIR) -> pd.DataFrame:
     )
     chave = ["COD_UPA", "NUM_DOM", "NUM_UC", "COD_INFORMANTE"]
     df = consumo.merge(morador, on=chave, how="left", validate="many_to_one")
+    df = df.merge(
+        _composicao(morador, chave[:3], "V0403"), on=chave[:3], how="left", validate="many_to_one"
+    )
     df["edicao"] = "2017-18"
+    # A UPA é o setor sorteado na amostra.
+    df["id_setor"] = df["COD_UPA"].astype("int64").astype(str).str.zfill(9)
+    df["id_domicilio"] = df["id_setor"] + df["NUM_DOM"].astype(int).astype(str).str.zfill(2)
     df["id_pessoa"] = (
-        df["COD_UPA"].astype("int64").astype(str).str.zfill(9)
-        + df["NUM_DOM"].astype(int).astype(str).str.zfill(2)
+        df["id_domicilio"]
         + df["NUM_UC"].astype(int).astype(str)
         + df["COD_INFORMANTE"].astype(int).astype(str).str.zfill(2)
     )
@@ -197,12 +224,22 @@ def ler_2008_2009(raiz: Path = RAW_DIR) -> pd.DataFrame:
     )
     chave = ["COD_UF", "NUM_SEQ", "NUM_DV", "NUM_DOM", "NUM_UC", "COD_INFORMANTE"]
     df = consumo.merge(morador, on=chave, how="left", validate="many_to_one")
+    df = df.merge(
+        _composicao(morador, chave[:5], "IDADE_ANOS"),
+        on=chave[:5],
+        how="left",
+        validate="many_to_one",
+    )
     df["edicao"] = "2008-09"
-    df["id_pessoa"] = (
+    # Setor sorteado = UPA = COD_UF + NUM_SEQ + NUM_DV (programa SAS do IBGE).
+    df["id_setor"] = (
         df["COD_UF"].astype(int).astype(str).str.zfill(2)
         + df["NUM_SEQ"].astype(int).astype(str).str.zfill(3)
         + df["NUM_DV"].astype(int).astype(str)
-        + df["NUM_DOM"].astype(int).astype(str).str.zfill(2)
+    )
+    df["id_domicilio"] = df["id_setor"] + df["NUM_DOM"].astype(int).astype(str).str.zfill(2)
+    df["id_pessoa"] = (
+        df["id_domicilio"]
         + df["NUM_UC"].astype(int).astype(str)
         + df["COD_INFORMANTE"].astype(int).astype(str).str.zfill(2)
     )
