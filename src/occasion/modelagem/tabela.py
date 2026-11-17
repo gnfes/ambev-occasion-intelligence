@@ -152,15 +152,16 @@ def _pessoas(consumo: pd.DataFrame, edicao: str) -> pd.DataFrame:
 def _fator_dia(dias: pd.DataFrame, pessoas: pd.DataFrame) -> pd.Series:
     """Fator que faz cada dia da semana valer 1/7 do peso das pessoas-dia."""
     peso = dias["id_pessoa"].map(pessoas.set_index("id_pessoa")["peso_final"])
+    peso = peso[dias["dia_semana"].notna()]
     parcela = peso.groupby(dias["dia_semana"]).sum() / peso.sum()
     return dias["dia_semana"].map(1 / (7 * parcela)).astype("Float64")
 
 
 def construir(consumo: pd.DataFrame, posicao_trends: pd.DataFrame) -> pd.DataFrame:
     """Monta a tabela de uma edição a partir do parquet de consumo."""
-    edicao = consumo["edicao"].iloc[0]
     if consumo["edicao"].nunique() != 1:
-        raise ValueError("o consumo deve ter uma edição só")
+        raise ValueError("o consumo deve ter exatamente uma edição")
+    edicao = consumo["edicao"].iloc[0]
 
     dias = consumo.groupby(_PESSOA_DIA, as_index=False).agg(dia_semana=("dia_semana", "first"))
     pessoas = _pessoas(consumo, edicao)
