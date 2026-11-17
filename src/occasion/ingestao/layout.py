@@ -41,12 +41,12 @@ def layout_sas(programa_sas: Path, arquivo: str) -> list[Campo]:
     """Extrai os campos do bloco INPUT que lê `arquivo` no programa SAS."""
     # Comentários saem antes de tudo: um nome de arquivo ou um ";" dentro de
     # um comentário não pode definir onde o bloco começa ou termina.
-    texto = re.sub(r"/\*.*?\*/", " ", _ler_texto(programa_sas), flags=re.S)
-    nome = re.escape(re.sub(r"\.txt$", "", arquivo, flags=re.I))
-    infile = re.search(rf'INFILE\s+"(?:[^"]*[\\/])?{nome}(?:\.txt)?"', texto, flags=re.I)
+    texto = re.sub(r"/\*.*?\*/", " ", _ler_texto(programa_sas), flags=re.DOTALL)
+    nome = re.escape(re.sub(r"\.txt$", "", arquivo, flags=re.IGNORECASE))
+    infile = re.search(rf'INFILE\s+"(?:[^"]*[\\/])?{nome}(?:\.txt)?"', texto, flags=re.IGNORECASE)
     if infile is None:
         raise KeyError(f"{arquivo} não aparece num INFILE de {programa_sas}")
-    entrada = re.compile(r"\bINPUT\b", flags=re.I).search(texto, infile.end())
+    entrada = re.compile(r"\bINPUT\b", flags=re.IGNORECASE).search(texto, infile.end())
     if entrada is None:
         raise ValueError(f"Bloco INPUT de {arquivo} não encontrado")
     fim = texto.find(";", entrada.end())

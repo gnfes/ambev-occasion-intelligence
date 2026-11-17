@@ -17,6 +17,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
+    "ruff>=0.17.5",
 ]
 
 [tool.pytest.ini_options]
@@ -29,3 +30,6 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "occasion"
+
+[tool.ruff]
+line-length = 100
