@@ -49,8 +49,6 @@ TIPO_FAIXA = pd.CategoricalDtype(list(FAIXAS_IDADE), ordered=True)
 # em janeiro de 2018 (Decreto 9.255/2017).
 SALARIO_MINIMO = {"2008-09": 415.0, "2017-18": 954.0}
 
-DOMINGO, QUARTA, SABADO = 7, 3, 6
-
 COLUNAS = [
     # chaves
     "edicao",
@@ -70,10 +68,8 @@ COLUNAS = [
     # pesos
     "peso_final",
     "fator_dia",
-    # features
+    # features (dia_semana entra como categoria, não como número de 1 a 7)
     "dia_semana",
-    "fim_de_semana",
-    "quarta",
     "regiao",
     "situacao",
     "trends_pizza_rank_uf",
@@ -190,9 +186,6 @@ def construir(consumo: pd.DataFrame, posicao_trends: pd.DataFrame) -> pd.DataFra
 
     base = base.merge(pessoas, on="id_pessoa", how="left", validate="many_to_one")
     base["edicao"] = edicao
-    base["fim_de_semana"] = base["dia_semana"].isin([SABADO, DOMINGO]).astype("boolean")
-    base["quarta"] = (base["dia_semana"] == QUARTA).astype("boolean")
-    base.loc[base["dia_semana"].isna(), ["fim_de_semana", "quarta"]] = pd.NA
 
     posicao = posicao_trends.loc[posicao_trends["edicao"] == edicao, ["uf", "trends_pizza_rank_uf"]]
     base = base.merge(

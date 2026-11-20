@@ -122,8 +122,7 @@ def test_auxiliares_de_guarana_e_local(consumo, posicao):
 def test_atributos_e_calendario(consumo, posicao):
     tabela = construir(consumo, posicao)
     a = _linha(tabela, A, 1, "noite")
-    assert a["fim_de_semana"] and not a["quarta"]
-    assert _linha(tabela, A, 2, "noite")["quarta"]
+    assert a["dia_semana"] == 6
     assert a["trends_pizza_rank_uf"] == 4
     assert a["renda_sm"] == pytest.approx(1.0)
     assert a["faixa_idade"] == "30-34"
