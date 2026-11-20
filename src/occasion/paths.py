@@ -12,3 +12,5 @@ RAIZ = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.environ.get("OCCASION_DATA_DIR", RAIZ / "data"))
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
+# Dados externos pequenos e públicos que ficam versionados (ex.: Google Trends).
+REFERENCIA_DIR = DATA_DIR / "referencia"
