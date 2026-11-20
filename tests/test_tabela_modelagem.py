@@ -9,6 +9,7 @@ from occasion.ingestao.pof import caminho_parquet
 from occasion.modelagem.tabela import (
     COLUNAS,
     TURNOS,
+    carregar_areas,
     construir,
     percentil_ponderado,
     resumo,
@@ -27,7 +28,6 @@ def _item(pessoa: str, dia: int, hora: int, cod: str, **campos) -> dict:
         "estrato": 3501,
         "uf": 35,
         "regiao": "Sudeste",
-        "situacao": "urbano",
         "dia_registro": dia,
         "dia_semana": 6 if dia == 1 else 3,
         "hora": hora,
@@ -69,6 +69,13 @@ def consumo() -> pd.DataFrame:
 
 
 @pytest.fixture
+def areas() -> pd.DataFrame:
+    return pd.DataFrame(
+        {"edicao": ["2017-18"], "uf": [35], "estrato": [3501], "tipo_area": ["capital"]}
+    )
+
+
+@pytest.fixture
 def posicao() -> pd.DataFrame:
     return pd.DataFrame(
         {"edicao": ["2017-18", "2008-09"], "uf": [35, 35], "trends_pizza_rank_uf": [4, 1]}
@@ -91,15 +98,15 @@ def test_turnos_cobrem_as_24_horas():
     assert turnos.tolist() == ["manha"] * 11 + ["almoco"] * 4 + ["tarde"] * 3 + ["noite"] * 6
 
 
-def test_quatro_turnos_por_pessoa_dia(consumo, posicao):
-    tabela = construir(consumo, posicao)
+def test_quatro_turnos_por_pessoa_dia(consumo, posicao, areas):
+    tabela = construir(consumo, posicao, areas)
     assert list(tabela.columns) == COLUNAS
     assert len(tabela) == 3 * len(TURNOS)
     assert (tabela.groupby(["id_pessoa", "dia_registro"]).size() == 4).all()
 
 
-def test_alvo_ate_uma_hora_no_turno_da_pizza(consumo, posicao):
-    tabela = construir(consumo, posicao)
+def test_alvo_ate_uma_hora_no_turno_da_pizza(consumo, posicao, areas):
+    tabela = construir(consumo, posicao, areas)
     assert _linha(tabela, A, 1, "noite")["alvo_pizza_refri"]
     assert _linha(tabela, A, 1, "manha")["alvo_pizza_refri"]
     assert not _linha(tabela, A, 1, "almoco")["alvo_pizza_refri"]
@@ -109,8 +116,8 @@ def test_alvo_ate_uma_hora_no_turno_da_pizza(consumo, posicao):
     assert tabela["alvo_pizza_refri"].sum() == 2
 
 
-def test_auxiliares_de_guarana_e_local(consumo, posicao):
-    tabela = construir(consumo, posicao)
+def test_auxiliares_de_guarana_e_local(consumo, posicao, areas):
+    tabela = construir(consumo, posicao, areas)
     assert _linha(tabela, A, 1, "manha")["teve_guarana"]
     assert not _linha(tabela, A, 1, "noite")["teve_guarana"]
     assert _linha(tabela, A, 1, "noite")["fora_de_casa"]
@@ -119,10 +126,11 @@ def test_auxiliares_de_guarana_e_local(consumo, posicao):
     assert pd.isna(_linha(tabela, B, 1, "noite")["fora_de_casa"])
 
 
-def test_atributos_e_calendario(consumo, posicao):
-    tabela = construir(consumo, posicao)
+def test_atributos_e_calendario(consumo, posicao, areas):
+    tabela = construir(consumo, posicao, areas)
     a = _linha(tabela, A, 1, "noite")
     assert a["dia_semana"] == 6
+    assert a["tipo_area"] == "capital"
     assert a["trends_pizza_rank_uf"] == 4
     assert a["renda_sm"] == pytest.approx(1.0)
     assert a["faixa_idade"] == "30-34"
@@ -130,8 +138,8 @@ def test_atributos_e_calendario(consumo, posicao):
     assert a["peso_final"] == 100.0 and a["id_setor"] == "350000123"
 
 
-def test_fator_dia_iguala_os_dias_da_semana(consumo, posicao):
-    tabela = construir(consumo, posicao)
+def test_fator_dia_iguala_os_dias_da_semana(consumo, posicao, areas):
+    tabela = construir(consumo, posicao, areas)
     dias = tabela.drop_duplicates(["id_pessoa", "dia_registro"])
     peso = dias["peso_final"] * dias["fator_dia"]
     parcela = peso.groupby(dias["dia_semana"]).sum() / peso.sum()
@@ -197,3 +205,15 @@ def test_tabela_real_reproduz_a_conferencia(edicao):
     dias = tabela.drop_duplicates(["id_pessoa", "dia_registro"])
     parcela = (dias["peso_final"] * dias["fator_dia"]).groupby(dias["dia_semana"]).sum()
     assert np.allclose(parcela / parcela.sum(), 1 / 7)
+
+
+def test_estrato_sem_tipo_de_area_e_erro(consumo, posicao, areas):
+    with pytest.raises(ValueError, match="estratos sem tipo de área"):
+        construir(consumo, posicao, areas.assign(estrato=9999))
+
+
+def test_mapa_de_estratos_versionado_cobre_as_27_ufs():
+    areas = carregar_areas()
+    assert areas.groupby("edicao")["uf"].nunique().tolist() == [27, 27]
+    assert not areas.duplicated(["edicao", "uf", "estrato"]).any()
+    assert areas["tipo_area"].notna().all()

@@ -19,7 +19,14 @@ import pandas as pd
 
 from occasion.ingestao import trends
 from occasion.ingestao.pof import caminho_parquet
-from occasion.paths import PROCESSED_DIR
+from occasion.paths import PROCESSED_DIR, REFERENCIA_DIR
+
+# Tipo de área de cada estrato da amostra, transcrito das tabelas "Estratos
+# Geográficos POF 2008-2009" e "Estratos POF 2017-2018" da documentação do
+# IBGE: capital, resto da região metropolitana, resto da UF (interior urbano)
+# e rural.
+ARQUIVO_ESTRATOS = REFERENCIA_DIR / "estratos_pof.csv"
+TIPO_AREA = pd.CategoricalDtype(["capital", "resto_rm", "interior_urbano", "rural"])
 
 EDICOES = {"2008_2009": "2008-09", "2017_2018": "2017-18"}
 
@@ -73,7 +80,7 @@ COLUNAS = [
     # features (dia_semana entra como categoria, não como número de 1 a 7)
     "dia_semana",
     "regiao",
-    "situacao",
+    "tipo_area",
     "trends_pizza_rank_uf",
     "faixa_idade",
     "sexo",
@@ -128,7 +135,6 @@ def _pessoas(consumo: pd.DataFrame, edicao: str) -> pd.DataFrame:
         "estrato",
         "uf",
         "regiao",
-        "situacao",
         "peso",
         "renda",
         "idade",
@@ -154,7 +160,27 @@ def _fator_dia(dias: pd.DataFrame, pessoas: pd.DataFrame) -> pd.Series:
     return dias["dia_semana"].map(1 / (7 * parcela)).astype("Float64")
 
 
-def construir(consumo: pd.DataFrame, posicao_trends: pd.DataFrame) -> pd.DataFrame:
+def carregar_areas(caminho: Path = ARQUIVO_ESTRATOS) -> pd.DataFrame:
+    """Tipo de área por edição, UF e estrato."""
+    return pd.read_csv(caminho).astype({"tipo_area": TIPO_AREA})
+
+
+def _tipo_area(base: pd.DataFrame, areas: pd.DataFrame, edicao: str) -> pd.DataFrame:
+    mapa = areas.loc[areas["edicao"] == edicao, ["uf", "estrato", "tipo_area"]].astype(
+        {"uf": base["uf"].dtype, "estrato": base["estrato"].dtype}
+    )
+    base = base.merge(mapa, on=["uf", "estrato"], how="left", validate="many_to_one")
+    faltando = base.loc[base["tipo_area"].isna(), ["uf", "estrato"]].drop_duplicates()
+    if len(faltando):
+        raise ValueError(f"estratos sem tipo de área: {faltando.to_dict('records')}")
+    return base
+
+
+def construir(
+    consumo: pd.DataFrame,
+    posicao_trends: pd.DataFrame,
+    areas: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     """Monta a tabela de uma edição a partir do parquet de consumo."""
     if consumo["edicao"].nunique() != 1:
         raise ValueError("o consumo deve ter exatamente uma edição")
@@ -187,6 +213,8 @@ def construir(consumo: pd.DataFrame, posicao_trends: pd.DataFrame) -> pd.DataFra
 
     base = base.merge(pessoas, on="id_pessoa", how="left", validate="many_to_one")
     base["edicao"] = edicao
+
+    base = _tipo_area(base, carregar_areas() if areas is None else areas, edicao)
 
     posicao = posicao_trends.loc[posicao_trends["edicao"] == edicao, ["uf", "trends_pizza_rank_uf"]]
     base = base.merge(
