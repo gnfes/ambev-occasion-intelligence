@@ -56,6 +56,8 @@ CATEGORICAS = ["turno", "dia_semana", "regiao", "tipo_area", "faixa_idade", "sex
 # Agrupamento do dia da semana testado se as métricas por dia ficarem instáveis.
 DIA_GRUPO = {1: "seg-qui", 2: "seg-qui", 3: "seg-qui", 4: "seg-qui", 5: "sex", 6: "sab", 7: "dom"}
 
+# Base do LightGBM. Os parâmetros de cada candidato ou grade substituem estes
+# de propósito (ex.: reg_lambda maior no LightGBM regularizado).
 PARAMS_LGBM = {
     "objective": "binary",
     "learning_rate": 0.03,

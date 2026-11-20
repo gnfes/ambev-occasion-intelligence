@@ -11,10 +11,16 @@ Por que não escolher pela CV dentro de 2008-09: na ablação, a CV de
 mudança entre edições, que é o que o modelo enfrenta. A CV de 2008-09 segue
 no relatório para mostrar isso.
 
-Regra: vence o candidato com maior PR-AUC na metade de seleção. Se a
-diferença para um candidato mais simples tiver IC95 (bootstrap pareado por
-setor, na metade de seleção) que inclui zero, fica o mais simples (ordem de
-simplicidade: a numeração dos candidatos).
+Regra: vence o candidato com maior PR-AUC na metade de seleção, a menos
+que um candidato mais simples não fique significativamente atrás dele
+(teste unilateral: o limite inferior do IC95 da diferença "melhor − mais
+simples", por bootstrap pareado de setores na metade de seleção, não passa
+de zero). Nesse caso fica o mais simples (ordem de simplicidade: a
+numeração dos candidatos).
+
+A coluna `pr_auc_cv_2008` do AutoML é a AP interna do FLAML (pesos
+`peso_final`, melhor configuração entre as testadas), não a mesma CV dos
+outros candidatos: ela tende a ser otimista e aparece só como referência.
 
 Candidatos:
 1. logística (C=1), o modelo atual;
@@ -187,6 +193,14 @@ class _AutoML:
 
 
 def rodar(saida: Path = PROCESSED_DIR, com_automl: bool = True) -> Path:
+    if com_automl:
+        try:
+            from flaml import AutoML  # noqa: F401
+        except ImportError as erro:
+            raise SystemExit(
+                "AutoML precisa do grupo opcional: uv run --group automl python -m "
+                "occasion.modelagem.candidatos"
+            ) from erro
     tr = t.preparar(t.carregar("2008_2009"))
     te = t.preparar(t.carregar("2017_2018"))
     y = te[t.ALVO].astype(int).to_numpy()
@@ -217,22 +231,27 @@ def rodar(saida: Path = PROCESSED_DIR, com_automl: bool = True) -> Path:
             {
                 "candidato": nome,
                 "pr_auc_cv_2008": np.mean(aps),
-                "ep_cv": np.std(aps) / np.sqrt(len(aps)),
+                "ep_cv": np.std(aps, ddof=1) / np.sqrt(len(aps)),
             }
         )
 
     automl_desc = ""
     if com_automl:
         auto = _AutoML(F).fit(tr)
-        nome = f"6. AutoML FLAML ({auto.est.best_estimator})"
+        nome = f"6. AutoML FLAML ({auto.est.best_estimator}; CV = AP interna)"
         prev[nome] = auto.predict(te)
         # A CV do FLAML é a do próprio fit (1 - perda = AP média nos folds por setor).
         linhas.append(
-            {"candidato": nome, "pr_auc_cv_2008": 1 - auto.est.best_loss, "ep_cv": np.nan}
+            {
+                "candidato": nome,
+                # AP interna do FLAML: não comparável à CV dos outros (ver docstring).
+                "pr_auc_cv_2008": 1 - auto.est.best_loss,
+                "ep_cv": np.nan,
+            }
         )
         automl_desc = (
             f"AutoML: {ORCAMENTO_AUTOML_S}s, melhor estimador `{auto.est.best_estimator}`, "
-            f"configuração `{ {k: round(float(v), 4) for k, v in auto.est.best_config.items()} }`.\n"
+            f"configuração `{ {k: float(round(v, 4)) if isinstance(v, float) else v for k, v in auto.est.best_config.items()} }`.\n"
         )
 
     tab = pd.DataFrame(linhas).set_index("candidato")
