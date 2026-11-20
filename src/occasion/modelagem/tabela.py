@@ -65,6 +65,8 @@ COLUNAS = [
     "teve_guarana",
     "fora_de_casa",
     "uf",
+    # renda em salários mínimos: cortes por classe nos relatórios
+    "renda_sm",
     # pesos
     "peso_final",
     "fator_dia",
@@ -76,7 +78,6 @@ COLUNAS = [
     "faixa_idade",
     "sexo",
     "renda_pct",
-    "renda_sm",
     "n_moradores",
     "tem_crianca",
 ]
