@@ -126,6 +126,27 @@ def test_auxiliares_de_guarana_e_local(consumo, posicao, areas):
     assert pd.isna(_linha(tabela, B, 1, "noite")["fora_de_casa"])
 
 
+def test_local_desconhecido_so_vira_falso_sem_duvida(consumo, posicao, areas):
+    # A, dia 2, noite: mais uma pizza em casa e outra de local desconhecido
+    extra = pd.DataFrame(
+        [
+            _item(A, 2, 20, PIZZA, fora_de_casa=False),
+            _item(A, 2, 20, PIZZA, fora_de_casa=pd.NA),
+        ]
+    ).astype({"hora": "Int8", "dia_semana": "Int8", "uf": "Int8", "fora_de_casa": "boolean"})
+    consumo = pd.concat([consumo.astype({"fora_de_casa": "boolean"}), extra], ignore_index=True)
+    tabela = construir(consumo, posicao, areas)
+    # dia 2 à noite: pizzas em casa e uma de local desconhecido -> NA
+    assert pd.isna(_linha(tabela, A, 2, "noite")["fora_de_casa"])
+    # dia 1 à noite: a pizza fora de casa decide
+    assert _linha(tabela, A, 1, "noite")["fora_de_casa"]
+
+
+def test_sem_trends_da_edicao_e_erro(consumo, posicao, areas):
+    with pytest.raises(ValueError, match="sem posição do Trends"):
+        construir(consumo, posicao[posicao["edicao"] != "2017-18"], areas)
+
+
 def test_atributos_e_calendario(consumo, posicao, areas):
     tabela = construir(consumo, posicao, areas)
     a = _linha(tabela, A, 1, "noite")

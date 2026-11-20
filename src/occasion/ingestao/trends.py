@@ -63,6 +63,10 @@ def baixar(destino: Path = ARQUIVO, pausa: float = 8.0) -> Path:
         time.sleep(pausa)
     saida = pd.concat(partes, ignore_index=True)
     saida["uf"] = saida["sigla"].map(UF_CODIGOS)
+    desconhecidas = saida.loc[saida["uf"].isna(), "sigla"].unique().tolist()
+    if desconhecidas:
+        raise ValueError(f"códigos de região desconhecidos no Trends: {desconhecidas}")
+    saida["uf"] = saida["uf"].astype(int)
     destino.parent.mkdir(parents=True, exist_ok=True)
     saida[["edicao", "janela", "uf", "sigla", "pizza"]].to_csv(destino, index=False)
     return destino

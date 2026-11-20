@@ -116,6 +116,13 @@ def _marca(base: pd.DataFrame, turnos: pd.DataFrame, nome: str) -> pd.DataFrame:
     return base
 
 
+def _algum_fora(local: pd.Series) -> object:
+    """True se algum item foi fora; NA se nenhum foi e algum local é desconhecido."""
+    if local.eq(True).any():
+        return True
+    return pd.NA if local.isna().any() else False
+
+
 def percentil_ponderado(valor: pd.Series, peso: pd.Series) -> pd.Series:
     """Percentil (0 a 100) de cada valor na distribuição ponderada.
 
@@ -204,7 +211,7 @@ def construir(
     local = (
         consumo[consumo["pizza"]]
         .groupby([*_PESSOA_DIA, "turno"], observed=True)["fora_de_casa"]
-        .max()
+        .agg(_algum_fora)
         .rename("fora_de_casa")
         .reset_index()
     )
@@ -217,6 +224,8 @@ def construir(
     base = _tipo_area(base, carregar_areas() if areas is None else areas, edicao)
 
     posicao = posicao_trends.loc[posicao_trends["edicao"] == edicao, ["uf", "trends_pizza_rank_uf"]]
+    if posicao.empty:
+        raise ValueError(f"sem posição do Trends para a edição {edicao}")
     base = base.merge(
         posicao.astype({"uf": base["uf"].dtype}), on="uf", how="left", validate="many_to_one"
     )
@@ -244,7 +253,11 @@ def processar(
 
 
 def resumo(tabela: pd.DataFrame) -> dict[str, float]:
-    """Números de conferência: linhas, positivos e taxa ponderada por dia."""
+    """Números de conferência: linhas, positivos e taxa de dias-pessoa positivos.
+
+    A taxa usa só `peso_final` (sem `fator_dia`), como na conferência nos
+    microdados.
+    """
     dias = tabela.groupby(_PESSOA_DIA).agg(
         alvo=("alvo_pizza_refri", "any"), peso=("peso_final", "first")
     )

@@ -85,7 +85,8 @@ def _composicao(morador: pd.DataFrame, chave_uc: list[str], idade: str) -> pd.Da
     """Moradores e presença de criança por unidade de consumo (UC).
 
     A UC é a mesma unidade da renda (`RENDA_TOTAL`), e quase todo domicílio
-    tem uma só UC.
+    tem uma só UC. `tem_crianca` descreve a UC, com o próprio informante
+    incluído: quem tem 10 ou 11 anos sempre fica com True.
     """
     crianca = morador[chave_uc].assign(crianca=morador[idade] < IDADE_CRIANCA)
     return crianca.groupby(chave_uc, as_index=False).agg(
