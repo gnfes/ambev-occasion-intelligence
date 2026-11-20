@@ -157,7 +157,7 @@ class Modelo:
             self.est = _logistica(self.features).fit(X, y, logisticregression__sample_weight=w)
         else:
             self.est = lgb.LGBMClassifier(
-                **PARAMS_LGBM, **self.params, n_estimators=self.n_arvores, random_state=42
+                **{**PARAMS_LGBM, **self.params}, n_estimators=self.n_arvores, random_state=42
             ).fit(X, y, sample_weight=w)
         return self
 
@@ -192,7 +192,7 @@ def escolher_lgbm(
     for params in grade:
         aps, its = [], []
         for tr, va in folds:
-            m = lgb.LGBMClassifier(**PARAMS_LGBM, **params, n_estimators=2000, random_state=42)
+            m = lgb.LGBMClassifier(**{**PARAMS_LGBM, **params}, n_estimators=2000, random_state=42)
             m.fit(
                 X.iloc[tr],
                 y.iloc[tr],

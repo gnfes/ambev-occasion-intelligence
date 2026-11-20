@@ -15,6 +15,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+automl = [
+    "flaml[automl]>=2.8.0",
+]
 dev = [
     "pytest>=9.2.0",
     "ruff>=0.17.5",
