@@ -63,6 +63,7 @@ PARAMS_LGBM = {
     "subsample_freq": 1,
     "colsample_bytree": 0.8,
     "reg_lambda": 1.0,
+    "metric": "average_precision",
     "verbose": -1,
     "n_jobs": -1,
 }
@@ -80,6 +81,8 @@ def preparar(tabela: pd.DataFrame) -> pd.DataFrame:
       27. A posição crua 22 é a última em 2008-09 e o meio-baixo em 2017-18.
     - `dia_grupo`: seg-qui, sex, sab, dom.
     """
+    if tabela["fator_dia"].isna().any():
+        raise ValueError("há linhas sem dia da semana (fator_dia NA); trate antes de modelar")
     df = tabela.copy()
     rank = df["trends_pizza_rank_uf"].astype("float")
     n_ufs = rank.groupby(df["edicao"]).transform("max")
@@ -92,14 +95,6 @@ def preparar(tabela: pd.DataFrame) -> pd.DataFrame:
         df[col] = df[col].astype("string").astype("category")
     df["peso_metrica"] = df["peso_final"] * df["fator_dia"].astype("float")
     return df
-
-
-def _alinhar_categorias(treino: pd.DataFrame, teste: pd.DataFrame, cols: list[str]):
-    teste = teste.copy()
-    for col in cols:
-        if col in CATEGORICAS:
-            teste[col] = pd.Categorical(teste[col], categories=treino[col].cat.categories)
-    return teste
 
 
 # ---------------------------------------------------------------- modelos
@@ -205,17 +200,39 @@ def escolher_lgbm(
                 eval_X=(X.iloc[va],),
                 eval_y=(y.iloc[va],),
                 eval_sample_weight=[w[va]],
-                eval_metric="average_precision",
-                callbacks=[lgb.early_stopping(100, verbose=False)],
+                callbacks=[lgb.early_stopping(100, first_metric_only=True, verbose=False)],
             )
             p = m.predict_proba(X.iloc[va])[:, 1]
             aps.append(average_precision_score(y.iloc[va], p, sample_weight=w[va]))
             its.append(m.best_iteration_ or 2000)
         linhas.append({**params, "pr_auc_cv": np.mean(aps), "n_arvores": int(np.mean(its))})
-    tab = pd.DataFrame(linhas).sort_values("pr_auc_cv", ascending=False)
-    melhor = tab.iloc[0]
-    params = {k: int(melhor[k]) for k in grade[0]}
-    return params, int(melhor["n_arvores"]), tab
+    tab = pd.DataFrame(linhas)
+    i = int(tab["pr_auc_cv"].idxmax())
+    return (
+        dict(grade[i]),
+        int(tab.loc[i, "n_arvores"]),
+        tab.sort_values("pr_auc_cv", ascending=False),
+    )
+
+
+def pr_auc_cv(
+    treino: pd.DataFrame,
+    tipo: str,
+    features: list[str],
+    params: dict | None = None,
+    n_arvores: int = 300,
+    n_folds: int = 5,
+) -> float:
+    """PR-AUC média por validação cruzada por setor, só no treino.
+
+    Serve para escolher variantes sem olhar o teste (2017-18).
+    """
+    aps = []
+    for tr, va in GroupKFold(n_splits=n_folds).split(treino, groups=treino[GRUPO]):
+        a, b = treino.iloc[tr], treino.iloc[va]
+        p = Modelo(tipo, features, params or {}, n_arvores).fit(a).predict(b)
+        aps.append(average_precision_score(b[ALVO].astype(int), p, sample_weight=b["peso_metrica"]))
+    return float(np.mean(aps))
 
 
 # ------------------------------------------------------------ calibração
@@ -237,10 +254,12 @@ def metades_setor(df: pd.DataFrame, semente: int = 7) -> np.ndarray:
 def calibrar_cruzado(p: np.ndarray, df: pd.DataFrame, lado: np.ndarray) -> np.ndarray:
     """Calibração de Platt (logística no logit) ajustada numa metade e aplicada na outra.
 
-    Platt é monótona, então não muda ordenação dentro de cada metade.
+    Platt é monótona, então não muda ordenação dentro de cada metade. O ajuste
+    usa `peso_metrica` (cada dia da semana vale 1/7), a mesma população em que
+    o score é avaliado e usado.
     """
     y = df[ALVO].astype(int).to_numpy()
-    w = df["peso_final"].to_numpy()
+    w = df["peso_metrica"].to_numpy()
     saida = np.empty_like(p)
     for k in (0, 1):
         ajuste = lado != k
@@ -254,16 +273,30 @@ def calibrar_cruzado(p: np.ndarray, df: pd.DataFrame, lado: np.ndarray) -> np.nd
 # ---------------------------------------------------------------- métricas
 
 
+def fracao_topo(p: np.ndarray, w: np.ndarray, fracao: float = 0.1) -> np.ndarray:
+    """Quanto de cada linha entra no topo `fracao` do peso, ordenado pelo score.
+
+    Linhas acima do corte entram inteiras (1). Um bloco de empates que cruza o
+    corte entra em parte, na mesma proporção para todas as suas linhas, para
+    que o topo tenha exatamente `fracao` do peso mesmo com scores repetidos
+    (o baseline tem só 28 valores distintos).
+    """
+    total = w.sum() * fracao
+    por_valor = pd.Series(w).groupby(p).sum().sort_index(ascending=False)
+    antes = por_valor.cumsum() - por_valor
+    parte = ((total - antes) / por_valor).clip(0, 1)
+    return pd.Series(p).map(parte).to_numpy()
+
+
 def metricas(y: np.ndarray, p: np.ndarray, w: np.ndarray) -> dict[str, float]:
     base = float(np.average(y, weights=w))
-    corte = np.quantile(p, 0.9)
-    topo = p >= corte
+    topo = w * fracao_topo(p, w)
     return {
         "pr_auc": average_precision_score(y, p, sample_weight=w),
         "roc_auc": roc_auc_score(y, p, sample_weight=w),
         "taxa_base": base,
-        "lift_top10": float(np.average(y[topo], weights=w[topo]) / base),
-        "recall_top10": float((y * w)[topo].sum() / (y * w).sum()),
+        "lift_top10": float((y * topo).sum() / topo.sum() / base),
+        "recall_top10": float((y * topo).sum() / (y * w).sum()),
     }
 
 
@@ -277,16 +310,18 @@ def metricas_prob(y: np.ndarray, p: np.ndarray, w: np.ndarray) -> dict[str, floa
 
 
 def limiar_f1(y: np.ndarray, p: np.ndarray, w: np.ndarray) -> float:
-    """Limiar que maximiza o F1 ponderado."""
-    ordem = np.argsort(-p)
-    ys, ws, ps = y[ordem], w[ordem], p[ordem]
-    tp = np.cumsum(ys * ws)
-    fp = np.cumsum((1 - ys) * ws)
-    total = tp[-1]
+    """Limiar que maximiza o F1 ponderado com a regra `p >= limiar`.
+
+    Só avalia cortes no fim de cada bloco de scores iguais, porque `p >= t`
+    leva todos os empates juntos.
+    """
+    pos = pd.Series(y * w).groupby(p).sum().sort_index(ascending=False)
+    neg = pd.Series((1 - y) * w).groupby(p).sum().sort_index(ascending=False)
+    tp, fp = pos.cumsum().to_numpy(), neg.cumsum().to_numpy()
     prec = tp / (tp + fp)
-    rec = tp / total
+    rec = tp / tp[-1]
     f1 = 2 * prec * rec / np.maximum(prec + rec, 1e-12)
-    return float(ps[np.argmax(f1)])
+    return float(pos.index[np.argmax(f1)])
 
 
 def classificacao_cruzada(

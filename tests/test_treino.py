@@ -88,3 +88,27 @@ def test_bootstrap_pareado_tem_uma_coluna_por_variante():
         df, {"a": rng.uniform(size=len(df)), "b": rng.uniform(size=len(df))}, n=5
     )
     assert list(bs.columns) == ["a", "b"] and len(bs) == 5
+
+
+def test_fracao_topo_divide_o_bloco_de_empates():
+    p = np.array([0.9, 0.5, 0.5, 0.5, 0.1])
+    w = np.array([1.0, 1.0, 1.0, 1.0, 6.0])
+    # 10% de 10 = 1 de peso: só a primeira linha.
+    assert t.fracao_topo(p, w, 0.1).tolist() == [1, 0, 0, 0, 0]
+    # 20% = 2 de peso: a primeira e 1/3 de cada empate.
+    np.testing.assert_allclose(t.fracao_topo(p, w, 0.2), [1, 1 / 3, 1 / 3, 1 / 3, 0])
+
+
+def test_limiar_f1_respeita_empates():
+    # O bloco 0.5 tem 1 positivo e 3 negativos: levar o bloco piora o F1.
+    y = np.array([1, 1, 0, 0, 0])
+    p = np.array([0.9, 0.5, 0.5, 0.5, 0.5])
+    assert t.limiar_f1(y, p, np.ones(5)) == pytest.approx(0.9)
+
+
+def test_preparar_recusa_dia_sem_dia_da_semana():
+    df = _tabela()
+    df["fator_dia"] = df["fator_dia"].astype("Float64")
+    df.loc[0, "fator_dia"] = pd.NA
+    with pytest.raises(ValueError, match="dia da semana"):
+        t.preparar(df)

@@ -72,9 +72,11 @@ def _tabela_md(df: pd.DataFrame, casas: int = 4) -> str:
     df = df.reset_index()
 
     def fmt(v: object) -> str:
+        if pd.isna(v):
+            return ""
         if isinstance(v, float | np.floating):
-            return f"{v:.{casas}f}"
-        return "" if pd.isna(v) else str(v)
+            return f"{v:.0f}" if float(v).is_integer() and abs(v) >= 1 else f"{v:.{casas}f}"
+        return str(v).replace("|", "\\|")
 
     linhas = ["| " + " | ".join(map(str, df.columns)) + " |"]
     linhas.append("|" + "---|" * len(df.columns))
@@ -118,11 +120,12 @@ def segmentos(te: pd.DataFrame, score: np.ndarray, base: np.ndarray) -> pd.DataF
     return pd.DataFrame(linhas).set_index(["segmento", "valor"])
 
 
-def canal(te: pd.DataFrame, score: np.ndarray, corte: float) -> pd.DataFrame:
+def canal(te: pd.DataFrame, score: np.ndarray) -> pd.DataFrame:
     """Recall por local da pizza (em casa vs fora): só existe para os positivos."""
     pos = te[t.ALVO].astype(bool).to_numpy()
     local = te["fora_de_casa"].map({True: "fora de casa", False: "em casa"}).fillna("desconhecido")
     w = te["peso_metrica"].to_numpy()
+    topo = w * t.fracao_topo(score, w)
     linhas = []
     for valor in ["em casa", "fora de casa", "desconhecido"]:
         s = pos & (local == valor).to_numpy()
@@ -131,7 +134,7 @@ def canal(te: pd.DataFrame, score: np.ndarray, corte: float) -> pd.DataFrame:
                 {
                     "local": valor,
                     "positivos": int(s.sum()),
-                    "recall_no_top10": float(w[s & (score >= corte)].sum() / w[s].sum()),
+                    "recall_no_top10": float(topo[s].sum() / w[s].sum()),
                 }
             )
     return pd.DataFrame(linhas).set_index("local")
@@ -149,12 +152,15 @@ def rodar(saida: Path = PROCESSED_DIR) -> Path:
     params, n_arvores, grade = t.escolher_lgbm(tr, t.FEATURES)
 
     # 2. Ablação com os dois modelos.
+    # Cada variante tem duas medidas: PR-AUC por CV por setor dentro de 2008-09
+    # (escolha sem olhar o teste) e PR-AUC em 2017-18 (validação temporal).
     prev: dict[str, np.ndarray] = {"baseline": t.Baseline().fit(tr).predict(te)}
-    for nome, feats in VARIANTES.items():
-        prev[f"logistica | {nome}"] = t.Modelo("logistica", feats).fit(tr).predict(te)
-        prev[f"lgbm | {nome}"] = t.Modelo("lgbm", feats, params, n_arvores).fit(tr).predict(te)
-    prev["logistica | FINAL"] = t.Modelo("logistica", FEATURES_FINAIS).fit(tr).predict(te)
-    prev["lgbm | FINAL"] = t.Modelo("lgbm", FEATURES_FINAIS, params, n_arvores).fit(tr).predict(te)
+    cv: dict[str, float] = {}
+    for nome, feats in {**VARIANTES, "FINAL": FEATURES_FINAIS}.items():
+        for tipo in ("logistica", "lgbm"):
+            chave = f"{tipo} | {nome}"
+            prev[chave] = t.Modelo(tipo, feats, params, n_arvores).fit(tr).predict(te)
+            cv[chave] = t.pr_auc_cv(tr, tipo, feats, params, n_arvores)
 
     bs = t.bootstrap_setor(te, prev, n=N_BOOTSTRAP)
     linhas = []
@@ -165,6 +171,7 @@ def rodar(saida: Path = PROCESSED_DIR) -> Path:
         linhas.append(
             {
                 "variante": nome,
+                "pr_auc_cv_2008": cv.get(nome, np.nan),
                 **t.metricas(y, p, w),
                 "dif_pr_auc_vs_completo [IC95]": _ic(bs[nome] - bs[ref]),
                 "dif_pr_auc_vs_baseline [IC95]": _ic(bs[nome] - bs["baseline"]),
@@ -191,8 +198,7 @@ def rodar(saida: Path = PROCESSED_DIR) -> Path:
     ).T.rename_axis("modelo")
     curva = t.curva_calibracao(y, score, w)
     seg = segmentos(te, score, prev["baseline"])
-    corte_top10 = float(np.quantile(score, 0.9))
-    can = canal(te, score, corte_top10)
+    can = canal(te, score)
 
     # Coeficientes da logística (para conferência; SHAP vem na fase de explicação).
     modelo = t.Modelo("logistica", FEATURES_FINAIS).fit(tr)
