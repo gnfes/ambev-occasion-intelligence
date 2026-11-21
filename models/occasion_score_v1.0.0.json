@@ -1,0 +1,51 @@
+{
+  "modelo": "occasion_score",
+  "versao": "1.0.0",
+  "treinado_em": "2026-11-21",
+  "algoritmo": "regressão logística (one-hot + splines na renda) + calibração de Platt",
+  "features": [
+    "turno",
+    "dia_semana",
+    "regiao",
+    "tipo_area",
+    "faixa_idade",
+    "sexo",
+    "renda_pct"
+  ],
+  "treino": "POF 2008-09 + POF 2017-18 (pessoa × dia de registro × turno)",
+  "calibracao": "Platt em previsões fora da amostra de 2017-18 (metades de setores)",
+  "alvo": "pizza com refrigerante (genérico ou marca) com até 1 hora de diferença",
+  "unidade": "pessoa × dia de registro × turno",
+  "linhas_treino": 607684,
+  "positivos_treino": 1479,
+  "platt": {
+    "a": 0.9849182678015737,
+    "b": -0.13239598039660644
+  },
+  "faixas": {
+    "alta": ">= 0.00992 (10% maiores da população de 2017-18)",
+    "media": ">= 0.00100 (10% a 30%)",
+    "baixa": "resto",
+    "corte_alta": 0.00991753911677681,
+    "corte_media": 0.0010026372324893063
+  },
+  "taxa_media_2017_18": 0.0032677780807104234,
+  "validacao_temporal": {
+    "treino": "POF 2008-09",
+    "teste": "POF 2017-18",
+    "modelo": {
+      "pr_auc": 0.0288,
+      "roc_auc": 0.8985,
+      "taxa_base": 0.0033,
+      "lift_top10": 6.9081,
+      "recall_top10": 0.6908
+    },
+    "baseline": {
+      "pr_auc": 0.0182,
+      "roc_auc": 0.8801,
+      "taxa_base": 0.0033,
+      "lift_top10": 5.8054,
+      "recall_top10": 0.5805
+    }
+  }
+}
