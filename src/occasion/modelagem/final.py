@@ -103,6 +103,10 @@ class OccasionScore:
     corte_alta: float
     corte_media: float
     metadata: dict = field(default_factory=dict)
+    # Renda em salários mínimos → percentil de renda, na distribuição de
+    # 2017-18 (a entrada do app é em SM; o modelo usa o percentil).
+    renda_sm_ref: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    renda_pct_ref: np.ndarray = field(default_factory=lambda: np.zeros(0))
 
     # ------------------------------------------------------------ previsão
 
@@ -119,6 +123,10 @@ class OccasionScore:
         """Occasion Score em probabilidade (0 a 1)."""
         z = self.platt_a * self._logit_bruto(df) + self.platt_b
         return 1 / (1 + np.exp(-z))
+
+    def renda_pct(self, renda_sm: float | np.ndarray) -> np.ndarray:
+        """Percentil de renda (0 a 100) da renda mensal do domicílio em salários mínimos."""
+        return np.interp(renda_sm, self.renda_sm_ref, self.renda_pct_ref)
 
     def faixa(self, score: np.ndarray) -> np.ndarray:
         return np.where(
@@ -235,6 +243,11 @@ def treinar(
     score = os_.prever(rec)
     os_.corte_alta = _corte_topo(score, w, TOPO_ALTA)
     os_.corte_media = _corte_topo(score, w, TOPO_MEDIA)
+    if "renda_sm" in rec:
+        ref = rec[["renda_sm", "renda_pct"]].dropna().drop_duplicates("renda_sm")
+        ref = ref.sort_values("renda_sm")
+        os_.renda_sm_ref = ref["renda_sm"].to_numpy(dtype=float)
+        os_.renda_pct_ref = ref["renda_pct"].to_numpy(dtype=float)
 
     os_.metadata = {
         "modelo": "occasion_score",
