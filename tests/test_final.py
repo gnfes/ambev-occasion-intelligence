@@ -118,3 +118,16 @@ def test_faixas_e_matriz_somam_tudo():
     m = av.matriz_confusao(y, (faixa == "alta").astype(int), w)
     assert m.to_numpy().sum() == pytest.approx(100)
     assert m.loc["real 1", "previsto 1"] == pytest.approx(20)
+
+
+def test_treinar_exige_renda_sm(edicoes):
+    antiga, recente = edicoes
+    with pytest.raises(ValueError, match="renda_sm"):
+        final.treinar(antiga, recente.drop(columns="renda_sm"))
+
+
+def test_faixas_aceita_faixa_vazia():
+    y = np.array([1, 0, 0])
+    s = np.array([0.9, 0.9, 0.1])
+    tab, _ = av.faixas(s, y, np.ones(3), 0.9, 0.9)
+    assert tab.loc["media", "populacao_pct"] == 0

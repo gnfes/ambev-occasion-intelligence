@@ -217,6 +217,8 @@ def treinar(
     metricas_validacao: dict | None = None,
 ) -> OccasionScore:
     """Treina o modelo da aplicação a partir das duas edições já preparadas (`t.preparar`)."""
+    if "renda_sm" not in recente or recente["renda_sm"].isna().all():
+        raise ValueError("a edição recente precisa de `renda_sm` para converter a renda do app")
     tudo = _juntar(antiga, recente)
     eh_recente = (tudo["edicao"] == recente["edicao"].iloc[0]).to_numpy()
     rec = tudo[eh_recente].reset_index(drop=True)
@@ -243,11 +245,10 @@ def treinar(
     score = os_.prever(rec)
     os_.corte_alta = _corte_topo(score, w, TOPO_ALTA)
     os_.corte_media = _corte_topo(score, w, TOPO_MEDIA)
-    if "renda_sm" in rec:
-        ref = rec[["renda_sm", "renda_pct"]].dropna().drop_duplicates("renda_sm")
-        ref = ref.sort_values("renda_sm")
-        os_.renda_sm_ref = ref["renda_sm"].to_numpy(dtype=float)
-        os_.renda_pct_ref = ref["renda_pct"].to_numpy(dtype=float)
+    ref = rec[["renda_sm", "renda_pct"]].dropna().drop_duplicates("renda_sm")
+    ref = ref.sort_values("renda_sm")
+    os_.renda_sm_ref = ref["renda_sm"].to_numpy(dtype=float)
+    os_.renda_pct_ref = ref["renda_pct"].to_numpy(dtype=float)
 
     os_.metadata = {
         "modelo": "occasion_score",

@@ -98,7 +98,8 @@ class Contexto:
         erros = []
         if self.turno not in TURNOS:
             erros.append(f"turno deve ser um de {list(TURNOS)}")
-        if self.dia_semana not in DIAS:
+        # 6.0 == 6 passaria no `in`, mas vira a categoria "6.0", que o modelo não conhece.
+        if type(self.dia_semana) is not int or self.dia_semana not in DIAS:
             erros.append("dia_semana deve ser de 1 (segunda) a 7 (domingo)")
         if self.regiao not in REGIOES:
             erros.append(f"regiao deve ser uma de {REGIOES}")
@@ -108,7 +109,8 @@ class Contexto:
             erros.append(f"faixa_idade deve ser uma de {list(FAIXAS_IDADE)}")
         if self.sexo not in SEXOS:
             erros.append(f"sexo deve ser um de {list(SEXOS)}")
-        if not np.isfinite(self.renda_sm) or self.renda_sm < 0:
+        numero = isinstance(self.renda_sm, int | float) and not isinstance(self.renda_sm, bool)
+        if not numero or not np.isfinite(self.renda_sm) or self.renda_sm < 0:
             erros.append("renda_sm deve ser um número maior ou igual a zero")
         if self.canal is not None and self.canal not in CANAIS:
             erros.append(f"canal deve ser um de {CANAIS} ou vazio")
@@ -176,12 +178,11 @@ def melhor_momento(modelo: final.OccasionScore, contexto: Contexto) -> dict:
     }
 
 
-def _mensagens(contexto: Contexto, categoria: Categoria) -> list[str]:
+def _mensagens(dia_semana: int, categoria: Categoria) -> list[str]:
+    """Mensagens do momento em que se vai agir (na regra 3, o melhor momento do perfil)."""
     if categoria == Categoria.SEM_ATIVACAO:
         return []
-    momento = (
-        "ritual de fim de semana" if contexto.dia_semana in (5, 6, 7) else "pausa no meio da semana"
-    )
+    momento = "ritual de fim de semana" if dia_semana in (5, 6, 7) else "pausa no meio da semana"
     return [
         f'"Coisa Nossa" como {momento} (hipótese de mensagem, sem dado por segmento)',
         (
@@ -244,7 +245,12 @@ def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3)
         "para criar frequência; que a ação gere consumo novo é hipótese (sem dado).",
         4: f"Faixa média na classe {contexto.classe}: as classes B a D somam 86% das ocasiões "
         "(POF 2017-18), e a Ambev quer expandir além da classe A.",
-        5: "Score baixo e sem momento da semana em faixa alta para este perfil.",
+        5: (
+            f"Faixa média na classe {contexto.classe}, fora das classes B a D, e sem momento da "
+            "semana em faixa alta para este perfil."
+            if faixa == "media"
+            else "Score baixo e sem momento da semana em faixa alta para este perfil."
+        ),
     }
     return Recomendacao(
         occasion_score=round(100 * score, 3),
@@ -254,7 +260,12 @@ def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3)
         recommendation_name=NOMES[categoria],
         recommendation_reason=f"Regra {n}. {motivos[n]} {base}",
         recommendation_channel=canal,
-        messages=_mensagens(contexto, categoria),
+        messages=_mensagens(
+            melhor["dia_semana"]
+            if categoria == Categoria.CRIAR_FREQUENCIA
+            else contexto.dia_semana,
+            categoria,
+        ),
         rule=n,
         best_moment=melhor,
         model_metadata={

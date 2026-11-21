@@ -1,5 +1,6 @@
 """Decision Engine: regras isoladas e de ponta a ponta com o modelo versionado."""
 
+import numpy as np
 import pytest
 
 from occasion.decisao import engine as e
@@ -100,3 +101,33 @@ def test_renda_vira_percentil_crescente(modelo):
     p = modelo.renda_pct([0.5, 2, 5, 20])
     assert list(p) == sorted(p)
     assert 0 <= p[0] and p[-1] <= 100
+
+
+@pytest.mark.parametrize("dia", [6.0, True])
+def test_contexto_recusa_dia_que_nao_e_inteiro(dia):
+    with pytest.raises(ValueError, match="dia_semana"):
+        e.Contexto("noite", dia, "Sudeste", "capital", "25-29", "homem", 3)
+
+
+@pytest.mark.parametrize("renda", ["8", None, True, float("nan"), -1])
+def test_contexto_recusa_renda_invalida_com_value_error(renda):
+    with pytest.raises(ValueError, match="renda_sm"):
+        e.Contexto("noite", 6, "Sudeste", "capital", "25-29", "homem", renda)
+
+
+def test_mensagem_da_regra_3_fala_do_momento_recomendado(modelo):
+    c = e.Contexto("noite", 2, "Nordeste", "interior_urbano", "35-39", "mulher", 3)
+    r = e.decidir(c, modelo)
+    assert r.rule == 3
+    assert "fim de semana" in r.messages[0]
+
+
+def test_regra_5_na_faixa_media_nao_diz_score_baixo(modelo, monkeypatch):
+    # Força o melhor momento fora da faixa alta para isolar a regra 5.
+    falso = {"dia_semana": 6, "dia": "sábado", "turno": "noite", "occasion_score": 0.5}
+    monkeypatch.setattr(e, "melhor_momento", lambda m, c: {**falso, "classification": "media"})
+    monkeypatch.setattr(modelo, "faixa", lambda s: np.array(["media"] * len(s)))
+    c = e.Contexto("noite", 2, "Sudeste", "capital", "25-29", "homem", 30)
+    r = e.decidir(c, modelo)
+    assert (r.rule, r.classification) == (5, "media")
+    assert "fora das classes B a D" in r.recommendation_reason

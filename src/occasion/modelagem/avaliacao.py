@@ -82,6 +82,9 @@ def faixas(score: np.ndarray, y: np.ndarray, w: np.ndarray, corte_alta: float, c
     linhas = []
     for f in ["alta", "media", "baixa"]:
         s = faixa == f
+        if w[s].sum() == 0:  # faixa vazia (cortes iguais por empates)
+            linhas.append({"faixa": f, "populacao_pct": 0.0, "ocasioes_pct": 0.0, "positivos": 0})
+            continue
         linhas.append(
             {
                 "faixa": f,
@@ -283,6 +286,11 @@ def rodar(saida: Path = PROCESSED_DIR, arquivo_modelo: Path = final.ARQUIVO_MODE
         "### Modelo\n",
         _tabela_md(tab_faixas, 3),
         "\n### Baseline (mesma regra de faixa)\n",
+        (
+            "O baseline tem poucos valores distintos: o bloco de empates que cruza o corte "
+            f"entra inteiro, e a faixa alta dele cobre {tab_faixas_base.loc['alta', 'populacao_pct']:.1f}% "
+            "do peso, não 10%.\n"
+        ),
         _tabela_md(tab_faixas_base, 3),
         "\n## Matriz de confusão com a faixa alta como positivo (% da população)\n",
         _tabela_md(confusao, 3),
