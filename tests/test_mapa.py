@@ -1,10 +1,12 @@
 """Testes do Mapa de Oportunidade que rodam sem os dados do Censo e do OSM."""
 
+import zipfile
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from occasion.mapa import censo, oportunidade, osm
+from occasion.mapa import censo, cnpj, oportunidade, osm
 from occasion.mapa.oportunidade import Categoria, regra
 
 
@@ -43,7 +45,7 @@ def _municipios():
             "publico_20_44": [200_000, 80_000, 120_000, 60_000, 20_000],
             "ocasioes_semana": [40_000.0, 12_000.0, 9_000.0, 2_000.0, 5_000.0],
             "ocasioes_por_mil": [200.0, 150.0, 75.0, 33.0, 250.0],
-            "pizzarias_osm": [100, 10, 30, 3, 50],
+            "pizzarias_cnpj": [100, 10, 30, 3, 50],
             "pct_classe_bd": [60.0, 70.0, 55.0, 80.0, 50.0],
         }
     )
@@ -105,3 +107,73 @@ def test_filtro_osm():
         }
     )
     assert list(osm.filtrar(df)["osm_id"]) == ["n/1", "n/3", "n/5"]
+
+
+def test_normalizar_nome_de_municipio():
+    assert cnpj.normalizar("Sant'Ana do Livramento") == "SANT ANA DO LIVRAMENTO"
+    assert cnpj.normalizar("Igarapé-Açu") == "IGARAPE ACU"
+
+
+def test_contagem_cnpj_so_ativas_com_cnae_de_comida(tmp_path):
+    def linha(nome, situacao, cnae, uf="SP", mun="7107"):
+        campos = [""] * 30
+        campos[cnpj.COL_NOME_FANTASIA] = nome
+        campos[cnpj.COL_SITUACAO] = situacao
+        campos[cnpj.COL_CNAE] = cnae
+        campos[cnpj.COL_UF] = uf
+        campos[cnpj.COL_MUNICIPIO] = mun
+        return ";".join(f'"{c}"' for c in campos)
+
+    linhas = [
+        linha("PIZZARIA DO ZE", "02", "5611201"),
+        linha("Bella Pizza", "02", "5620104"),
+        linha("PIZZARIA FECHADA", "08", "5611201"),  # baixada
+        linha("PIZZA E CIA", "02", "4721102"),  # padaria: fora dos CNAEs
+        linha("CANTINA", "02", "5611201"),
+    ]
+    caminho = tmp_path / "Estabelecimentos0.zip"
+    with zipfile.ZipFile(caminho, "w") as z:
+        z.writestr("K3241.ESTABELE", "\n".join(linhas).encode("latin-1"))
+    c = cnpj.contar_arquivo(caminho)
+    assert c["estabelecimentos"].sum() == 3
+    assert c["pizzarias"].sum() == 2
+
+
+def test_ligacao_receita_ibge_por_nome_e_uf():
+    contagem = pd.DataFrame(
+        {
+            cnpj.COL_UF: ["RS", "SP"],
+            cnpj.COL_MUNICIPIO: ["8845", "7107"],
+            cnpj.COL_CNAE: ["5611201", "5611201"],
+            "estabelecimentos": [5, 9],
+            "pizzarias": [1, 2],
+        }
+    )
+    rec = pd.DataFrame({"tom": ["8845", "7107"], "nome": ["SANTANA DO LIVRAMENTO", "SAO PAULO"]})
+    ibge = pd.DataFrame(
+        {
+            "CD_MUN": [4317103, 3550308],
+            "municipio": ["Sant'Ana do Livramento", "São Paulo"],
+            "uf": ["RS", "SP"],
+        }
+    )
+    c = cnpj.ligar_ibge(contagem, rec, ibge)
+    assert list(c["CD_MUN"]) == [4317103, 3550308]
+    assert c.attrs["sem_ibge"].empty
+
+
+def test_correcao_regional_so_no_nordeste_e_centro_oeste():
+    mun = pd.DataFrame(
+        {
+            "regiao": ["Nordeste", "Centro-Oeste", "Sul"],
+            "ocasioes_semana": [68.0, 142.0, 50.0],
+            "publico_20_44": [1000.0, 1000.0, 1000.0],
+        }
+    )
+    out = oportunidade.corrigir_regiao(mun)
+    fatores = oportunidade.CORRECAO_REGIAO
+    assert out["ocasioes_semana"].tolist() == pytest.approx(
+        [68 / fatores["Nordeste"], 142 / fatores["Centro-Oeste"], 50.0]
+    )
+    assert out["ocasioes_por_mil"].tolist() == pytest.approx(out["ocasioes_semana"].tolist())
+    assert out["ocasioes_semana_sem_correcao"].tolist() == [68.0, 142.0, 50.0]

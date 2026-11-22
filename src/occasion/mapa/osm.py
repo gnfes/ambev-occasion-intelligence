@@ -10,9 +10,12 @@ arquivo, em `osm3s.timestamp_osm_base`).
 Cada ponto entra no município cujo polígono o contém (malha de distritos do
 Censo 2022, dissolvida por município).
 
-Limitação: a cobertura do OSM no Brasil é desigual e tende a ser melhor nas
-cidades grandes; não há fonte pública que dê o total real de pizzarias por
-município para corrigir a contagem.
+Limitação: a cobertura do OSM no Brasil é desigual. Nos 319 municípios de 100
+mil habitantes ou mais, pizzarias do OSM por 100 mil habitantes têm
+correlação de Spearman 0,83 com todos os restaurantes e lanchonetes do OSM
+por 100 mil (consulta à parte, base de 22/11/2026), ou seja, medem sobretudo
+quanto a cidade foi mapeada. Por isso a oferta do mapa vem do CNPJ
+(`cnpj.py`) e o OSM fica só como checagem.
 """
 
 from __future__ import annotations
