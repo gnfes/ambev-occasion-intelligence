@@ -23,10 +23,13 @@ from pathlib import Path
 import pandas as pd
 
 from occasion.mapa.censo import CENSO_DIR
-from occasion.paths import PROCESSED_DIR, RAW_DIR
+from occasion.paths import PROCESSED_DIR, RAW_DIR, REFERENCIA_DIR
 
 OSM_DIR = RAW_DIR / "osm"
 ARQUIVO_OSM = OSM_DIR / "pizzarias_osm_br.json"
+# Cópia filtrada e versionada (dados © colaboradores do OpenStreetMap, licença ODbL),
+# para o mapa rodar sem refazer a consulta.
+ARQUIVO_REFERENCIA = REFERENCIA_DIR / "pizzarias_osm_br.csv"
 ARQUIVO_MALHA = CENSO_DIR / "BR_distritos_CD2022.gpkg"
 ARQUIVO_MUNICIPIOS_GEO = PROCESSED_DIR / "municipios_geo.parquet"
 
@@ -40,7 +43,11 @@ AMENIDADES = {"restaurant", "fast_food", "cafe", "bar", "pub", "food_court"}
 
 
 def carregar(caminho: Path = ARQUIVO_OSM) -> tuple[pd.DataFrame, str]:
-    """Pontos das pizzarias e a data da base OSM."""
+    """Pontos das pizzarias e a data da base OSM (do JSON bruto ou da cópia versionada)."""
+    if caminho == ARQUIVO_OSM and not caminho.exists():
+        df = pd.read_csv(ARQUIVO_REFERENCIA, dtype={"osm_id": str, "timestamp_osm_base": str})
+        data = df["timestamp_osm_base"].dropna()
+        return df.drop(columns="timestamp_osm_base"), data.iloc[0] if len(data) else ""
     with open(caminho, encoding="utf-8") as f:
         dados = json.load(f)
     linhas = []
@@ -107,3 +114,12 @@ def por_municipio(pontos: pd.DataFrame, municipios) -> pd.DataFrame:
 
 def contagem(pontos_mun: pd.DataFrame) -> pd.Series:
     return pontos_mun.dropna(subset=["CD_MUN"]).groupby("CD_MUN").size().rename("pizzarias_osm")
+
+
+def salvar_referencia(caminho: Path = ARQUIVO_OSM) -> Path:
+    """Grava a cópia filtrada e versionada a partir do JSON bruto."""
+    if not caminho.exists():
+        raise FileNotFoundError(caminho)
+    df, data = carregar(caminho)
+    df.assign(timestamp_osm_base=data).to_csv(ARQUIVO_REFERENCIA, index=False)
+    return ARQUIVO_REFERENCIA

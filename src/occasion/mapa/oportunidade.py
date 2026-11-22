@@ -13,7 +13,7 @@ Regras (a primeira que vale decide):
 
 1. Potencial alto e oferta alta → conversão com a pizzaria do bairro.
 2. Potencial alto e oferta baixa → conversão no delivery e com criadores.
-3. Potencial médio e público majoritariamente B a D → awareness com criadores.
+3. Potencial médio e 50% ou mais do público nas classes B a D → awareness com criadores.
 4. Resto → monitorar.
 
 - Potencial: taxa de ocasiões esperadas por mil pessoas de 20 a 44 anos por
@@ -170,6 +170,11 @@ def montar() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
 # ------------------------------------------------------------------- relatório
 
 
+def _mil(n: float) -> str:
+    """Inteiro com ponto de milhar, como no resto do relatório em português."""
+    return f"{n:,.0f}".replace(",", ".")
+
+
 def _md(df: pd.DataFrame) -> str:
     cab = "| " + " | ".join(df.columns) + " |"
     sep = "|" + "---|" * len(df.columns)
@@ -251,9 +256,9 @@ def relatorio(mun: pd.DataFrame, ranking: pd.DataFrame, meta: dict) -> str:
     total = mun["publico_20_44"].sum()
     return f"""# Mapa de Oportunidade
 
-Universo: {len(ranking)} municípios com {POPULACAO_MINIMA:,} habitantes ou mais (Censo 2022), com
+Universo: {len(ranking)} municípios com {_mil(POPULACAO_MINIMA)} habitantes ou mais (Censo 2022), com
 {ranking["publico_20_44"].sum() / total:.0%} do público de 20 a 44 anos do país. Base do OSM:
-{meta["data_osm"]} ({meta["pizzarias_osm_total"]:,} pizzarias no Brasil, {meta["pizzarias_osm_fora"]} fora de
+{meta["data_osm"]} ({_mil(meta["pizzarias_osm_total"])} pizzarias no Brasil, {meta["pizzarias_osm_fora"]} fora de
 qualquer município).
 
 Taxa nacional esperada: {meta["taxa_nacional"]:.1f} ocasiões de pizza com refrigerante por mil pessoas
@@ -308,7 +313,7 @@ O ranking principal fica sem ajuste: os fatores vêm do modelo da validação
   distribuição dentro do município é hipótese (sem dado).
 - Idade: o Censo por município agrupa 30 a 39 e 40 a 49 anos; a divisão usa
   a proporção da UF nos microdados.
-- OSM: a base tem {meta["pizzarias_osm_total"]:,} pizzarias no Brasil, enquanto só as
+- OSM: a base tem {_mil(meta["pizzarias_osm_total"])} pizzarias no Brasil, enquanto só as
   pizzarias independentes eram 33,6 mil em 2024 segundo o iFood (número de
   comunicado do iFood lido em resumo de busca em 11/11/2026; a página é
   bloqueada neste ambiente). O OSM cobre uma parte pequena e desigual da

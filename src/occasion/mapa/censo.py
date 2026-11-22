@@ -10,8 +10,9 @@ fonte:
 1. Idade × sexo por município (agregados por município). O Censo agrupa 30 a
    39 e 40 a 49 anos; a divisão em faixas de 5 anos usa a proporção da UF nos
    microdados da amostra.
-2. Parte urbana e rural de cada grupo de idade × sexo (agregados por setor,
-   somados pela situação do setor).
+2. Parte urbana de cada grupo de idade × sexo (soma dos setores urbanos
+   sobre o total do município; o resto é rural, inclusive os setores com
+   sigilo, que são sobretudo rurais).
 3. Renda: o Censo por município só traz a média e a mediana da renda do
    responsável. A distribuição usada é a da UF (microdados, renda do
    domicílio das pessoas de 20 a 44 anos, separada em urbana e rural),
@@ -29,6 +30,7 @@ Os arquivos ficam em `data/raw/censo_2022/` e são baixados do FTP do IBGE.
 from __future__ import annotations
 
 import io
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -123,8 +125,7 @@ def baixar(destino: Path = CENSO_DIR) -> None:
             continue
         if url.endswith(".zip"):
             zip_local = baixar_arquivo(url, destino / Path(url).name)
-            with zipfile.ZipFile(zip_local) as z:
-                z.extract(nome, destino)
+            _extrair_csv(zip_local, Path(nome).stem.split("_BR")[0], destino / nome)
             zip_local.unlink()
         else:
             baixar_arquivo(url, destino / nome)
@@ -134,11 +135,25 @@ def baixar(destino: Path = CENSO_DIR) -> None:
         if (micro / f"Pessoas_{cod}_publico.csv").exists():
             continue
         zip_local = baixar_arquivo(f"{MICRODADOS}/{cod}_{sigla}.zip", micro / f"{cod}_{sigla}.zip")
-        with zipfile.ZipFile(zip_local) as z:
-            for membro in z.namelist():
-                if membro.startswith(("Pessoas_", "Domicilios_")):
-                    z.extract(membro, micro)
+        for prefixo in ("Pessoas_", "Domicilios_"):
+            _extrair_csv(zip_local, prefixo, micro / f"{prefixo}{cod}_publico.csv")
         zip_local.unlink()
+
+
+def _extrair_csv(zip_local: Path, prefixo: str, destino: Path) -> None:
+    """Extrai o CSV cujo nome (sem pasta) começa com `prefixo`, gravando em `destino`.
+
+    Os zips do IBGE têm datas no nome e às vezes uma pasta interna, então o
+    membro é achado pelo prefixo do nome do arquivo.
+    """
+    with zipfile.ZipFile(zip_local) as z:
+        membros = [
+            m for m in z.namelist() if Path(m).name.startswith(prefixo) and m.endswith(".csv")
+        ]
+        if len(membros) != 1:
+            raise ValueError(f"esperava 1 CSV {prefixo}* em {zip_local.name}, achei {membros}")
+        with z.open(membros[0]) as origem, open(destino, "wb") as saida:
+            shutil.copyfileobj(origem, saida)
 
 
 def _ler_agregado(caminho: Path) -> pd.DataFrame:
@@ -146,11 +161,15 @@ def _ler_agregado(caminho: Path) -> pd.DataFrame:
     df = pd.read_csv(caminho, sep=";", encoding="latin-1", dtype=str)
     for col in df.columns:
         if col.upper().startswith("V"):
-            df[col] = pd.to_numeric(
-                df[col].str.replace(".", "", regex=False).str.replace(",", ".", regex=False),
-                errors="coerce",
-            )
+            df[col] = pd.to_numeric(_numero_br(df[col]), errors="coerce")
     return df
+
+
+def _numero_br(texto: pd.Series) -> pd.Series:
+    """'1.234,5' → '1234.5'. Sem vírgula, o ponto é decimal (alguns arquivos misturam)."""
+    com_virgula = texto.str.contains(",", regex=False, na=False)
+    convertido = texto.str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
+    return convertido.where(com_virgula, texto)
 
 
 # ------------------------------------------------------------------ microdados
@@ -270,8 +289,13 @@ def tipo_area_urbana(recortes: pd.DataFrame) -> pd.Series:
     return pd.Series(tipo, index=rec["CD_MUN"], name="tipo_area_urbana")
 
 
-def _parte_urbana(pasta: Path) -> pd.DataFrame:
-    """Parte urbana de cada grupo de idade × sexo do município (soma dos setores)."""
+def _pessoas_urbanas(pasta: Path) -> pd.DataFrame:
+    """Pessoas em setores urbanos, por grupo de idade × sexo do município.
+
+    Setores com sigilo ("X") ficam fora da soma. Eles são sobretudo rurais,
+    então a parte rural é o total do município menos esta soma urbana, e não
+    a soma dos setores rurais.
+    """
     cols = [c for s in COLS_IDADE.values() for c in s.values()]
     dem = _ler_agregado(pasta / "Agregados_por_setores_demografia_BR.csv")
     dem = dem.rename(columns={"CD_setor": "CD_SETOR"})[["CD_SETOR", *cols]]
@@ -285,10 +309,7 @@ def _parte_urbana(pasta: Path) -> pd.DataFrame:
     df = dem.merge(bas, on="CD_SETOR", how="inner")
     # Situação 1 a 3 = urbana (dicionário dos agregados por setor).
     df["urbana"] = df["CD_SIT"].isin(["1", "2", "3"])
-    soma = df.groupby(["CD_MUN", "urbana"])[cols].sum().unstack("urbana", fill_value=0)
-    urb = soma.xs(True, axis=1, level="urbana") / (
-        soma.xs(True, axis=1, level="urbana") + soma.xs(False, axis=1, level="urbana")
-    )
+    urb = df[df["urbana"]].groupby("CD_MUN")[cols].sum()
     urb.index = urb.index.astype(int)
     return urb
 
@@ -314,7 +335,7 @@ def perfil_municipios(
     renda["CD_MUN"] = renda["CD_MUN"].astype(int)
     recortes = pd.read_excel(pasta / "Municípios_BR_Recortes_Territoriais_2022.xlsx")
     tipo_urb = tipo_area_urbana(recortes)
-    urb = _parte_urbana(pasta)
+    urb = _pessoas_urbanas(pasta)
 
     # Razão de renda média do responsável: município / UF (média ponderada pelos responsáveis).
     renda["uf"] = renda["CD_MUN"] // 100000
@@ -350,9 +371,9 @@ def perfil_municipios(
                 if not n or np.isnan(n):
                     continue
                 col_fonte = cols[fonte[faixa]]
-                p_urb = urb.at[mun, col_fonte] if mun in urb.index else np.nan
-                if np.isnan(p_urb):
-                    p_urb = 1.0
+                total = m[col_fonte]
+                n_urb = urb.at[mun, col_fonte] if mun in urb.index else 0.0
+                p_urb = float(np.clip(n_urb / total, 0, 1)) if total else 1.0
                 for urbana, parte in ((True, p_urb), (False, 1 - p_urb)):
                     if parte <= 0:
                         continue
