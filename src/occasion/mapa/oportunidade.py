@@ -44,7 +44,7 @@ import numpy as np
 import pandas as pd
 
 from occasion.mapa import censo, cnpj, osm, score
-from occasion.paths import PROCESSED_DIR
+from occasion.paths import PROCESSED_DIR, REFERENCIA_DIR
 
 POPULACAO_MINIMA = 100_000
 FRACAO_MEDIO = 0.5  # potencial médio a partir de metade da taxa nacional
@@ -61,6 +61,8 @@ ARQUIVO_VIES = PROCESSED_DIR / "vies_occasion_score.csv"
 ARQUIVO_RANKING = PROCESSED_DIR / "mapa_oportunidade.csv"
 ARQUIVO_RELATORIO = PROCESSED_DIR / "mapa_oportunidade.md"
 ARQUIVO_PONTOS = PROCESSED_DIR / "mapa_oportunidade.json"
+# Cópia versionada dos pontos (uma linha por município), lida pela API e pelo app.
+ARQUIVO_PONTOS_REFERENCIA = REFERENCIA_DIR / "mapa_oportunidade.csv"
 
 
 class Categoria(StrEnum):
@@ -451,6 +453,7 @@ def main(destino: Path = PROCESSED_DIR) -> None:
         json.dumps({"meta": meta, "municipios": pontos}, ensure_ascii=False, allow_nan=False),
         encoding="utf-8",
     )
+    pd.DataFrame(pontos).to_csv(destino / ARQUIVO_PONTOS_REFERENCIA.name, index=False)
     print(ranking.groupby("recomendacao").size())
 
 

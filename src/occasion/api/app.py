@@ -22,10 +22,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Literal
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from occasion.decisao import engine
+from occasion.mapa.oportunidade import ARQUIVO_PONTOS_REFERENCIA
 from occasion.modelagem import final
 from occasion.modelagem.tabela import FAIXAS_IDADE, TURNOS
 
@@ -130,7 +132,16 @@ def _caminho_modelo() -> Path:
 @asynccontextmanager
 async def _ciclo(app: FastAPI):
     app.state.modelo = final.carregar(_caminho_modelo())
+    app.state.mapa = _ler_mapa(ARQUIVO_PONTOS_REFERENCIA)
     yield
+
+
+def _ler_mapa(caminho: Path) -> list[dict]:
+    """Pontos do Mapa de Oportunidade (vazio se o arquivo não existir)."""
+    if not caminho.exists():
+        return []
+    df = pd.read_csv(caminho).sort_values("prioridade")
+    return df.astype(object).where(df.notna(), None).to_dict("records")
 
 
 app = FastAPI(
@@ -189,3 +200,16 @@ def predict(entrada: ContextoEntrada, request: Request) -> dict:
     except ValueError as erro:  # regra do engine que o schema não cobre
         raise HTTPException(status_code=422, detail=str(erro)) from erro
     return engine.decidir(contexto, modelo).como_dict()
+
+
+@app.get("/mapa")
+def mapa(request: Request) -> list[dict]:
+    """Ranking do Mapa de Oportunidade: municípios de 100 mil habitantes ou mais, em prioridade.
+
+    Gerado por `occasion.mapa.oportunidade` (regra documentada aplicada ao território, não
+    uma nova previsão).
+    """
+    pontos = request.app.state.mapa
+    if not pontos:
+        raise HTTPException(status_code=404, detail="mapa de oportunidade não encontrado")
+    return pontos
