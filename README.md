@@ -189,16 +189,19 @@ Validação temporal (treino 2008-09, teste 2017-18, pesos da POF com cada dia d
 | Recall nos 10% maiores | 58% | **69%** |
 
 - Ganho de PR-AUC sobre o baseline: +0,011 (IC95 +0,005 a +0,019).
-- O LightGBM empatou com a logística (0,027) com intervalo dez vezes mais largo; o AutoML
-  (0,023) não superou o baseline de forma significativa na metade de avaliação. Fica a
-  logística, mais simples e estável.
+- Na metade de avaliação, o LightGBM empatou com a logística (0,027 contra 0,027; diferença
+  −0,001, IC95 −0,005 a +0,005), a Random Forest ficou abaixo (0,021) e o AutoML (0,023) não
+  superou o baseline de forma significativa (IC95 −0,001 a +0,018). Pela regra de
+  simplicidade, fica a logística.
 - Calibração: média prevista 0,327% contra 0,327% observada; Brier 0,00321.
 - Importância (queda da PR-AUC ao embaralhar): turno 80%, dia da semana 29%, renda 19%, faixa de
   idade 13%, região 5%.
 - Faixas do score: **alta** (10% maiores da população) concentra 69% das ocasiões; **média**
   (10% a 30%), 24%; **baixa** (70% da população), 7%.
-- Segmentos: o modelo ganha do baseline em todos os dias da semana e regiões; subestima o
-  Nordeste (previsto/observado 0,63) e superestima o Centro-Oeste (1,48) e a classe A (1,92).
+- Segmentos: o modelo ganha do baseline em todos os dias da semana e regiões. Na validação
+  temporal, subestima o Nordeste (previsto/observado 0,63) e superestima o Centro-Oeste (1,48)
+  e a classe A (1,92). No modelo final, medido fora da amostra, o viés regional significativo
+  fica no Nordeste (0,68) e no Centro-Oeste (1,42), corrigidos no Mapa de Oportunidade.
 
 Relatórios completos: [experimentos](docs/relatorios/experimentos_occasion_score.md),
 [candidatos](docs/relatorios/candidatos_occasion_score.md),
@@ -224,7 +227,7 @@ Código: [`src/occasion/decisao/engine.py`](src/occasion/decisao/engine.py).
 
 Extra do case. Aplica o modelo, sem retreinar, ao público de 20 a 44 anos dos 319 municípios
 com 100 mil habitantes ou mais (Censo 2022) e cruza com a oferta de pizzarias ativas no CNPJ
-(25.474 estabelecimentos). Quatro regras: potencial alto e oferta alta → pizzaria do bairro (64
+(17.271 pizzarias ativas nesses municípios, de 25.474 no país). Quatro regras: potencial alto e oferta alta → pizzaria do bairro (64
 municípios); potencial alto e oferta baixa → delivery e criadores (28); potencial médio com
 maioria B a D → awareness (164); o resto → monitorar (63). Relatório:
 [`docs/relatorios/mapa_oportunidade.md`](docs/relatorios/mapa_oportunidade.md).

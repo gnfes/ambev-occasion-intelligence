@@ -32,10 +32,11 @@ população. Por isso o target é consumo real declarado, e não um proxy como b
   IC95 15% a 28%, POF 2017-18) entra no Decision Engine.
 - **Até 1 hora de diferença.** Escolhida contra o tipo de refeição declarado em 2017-18 como
   árbitro: "mesma hora" perdeu 23 de 812 pares e "mesmo turno" gerou 27 falsos pares; ±1 hora
-  ficou com 11 e 12 ([checagens de 16/11/2026](relatorios/checagens_tabela_modelagem.txt),
+  ficou com 12 perdidos e 11 falsos ([checagens de 16/11/2026](relatorios/checagens_tabela_modelagem.txt),
   bloco "comparacao com gabarito").
-- **Turno.** Manhã (0h às 10h, inclui a madrugada, com 2 ocasiões por edição), almoço (11h
-  às 14h), tarde (15h às 17h) e noite (18h às 23h). Cada pessoa-dia gera os quatro turnos,
+- **Turno.** Manhã (0h às 10h, inclui a madrugada), almoço (11h
+  às 14h), tarde (15h às 17h) e noite (18h às 23h). A madrugada tem 2 registros de pizza e 1
+  ocasião por edição. Cada pessoa-dia gera os quatro turnos,
   comendo ou não, para o denominador não depender do padrão de refeições.
 
 ## Dicionário de variáveis
@@ -160,9 +161,10 @@ IBGE (API de malhas, qualidade mínima, consultada em 23/11/2026). Detalhes no
   ocasiões; sábado, 69) têm intervalos largos. O relatório de avaliação marca os instáveis.
 - **Diário declarado.** Esquecimento e subdeclaração de itens são possíveis, e o viés de
   memória não é mensurável com estes dados.
-- **Calibração por região.** O modelo subestima o Nordeste (previsto/observado 0,68, IC95 0,54
-  a 0,85) e superestima o Centro-Oeste (1,42, IC95 1,03 a 2,16) em 2017-18; o Mapa de
-  Oportunidade corrige essas duas regiões.
+- **Calibração por região.** O modelo final, medido fora da amostra em 2017-18 (`vies.py`),
+  subestima o Nordeste (previsto/observado 0,68, IC95 0,54 a 0,85) e superestima o
+  Centro-Oeste (1,42, IC95 1,03 a 2,16); o Mapa de Oportunidade corrige essas duas regiões. Na
+  validação temporal (treino só em 2008-09) as razões são 0,63 e 1,48.
 - **Google Trends** mede interesse de busca, não consumo, e nunca é tratado como target.
 
 ## Licença e LGPD
