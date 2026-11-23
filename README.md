@@ -1,2 +1,271 @@
-# ambev-occasion-intelligence
-Occasion Intelligence para Pizza + Guaraná (Inteli x Ambev): pipeline de dados abertos (POF/IBGE, Google Trends), modelos de propensão e momento, Occasion Score e Decision Engine que recomenda ativações por região, dia e público
+# Occasion Intelligence: Pizza + Guaraná
+
+Sistema de dados que estima **quando e para quem** a ocasião pizza com refrigerante é mais
+provável e transforma essa estimativa em uma **recomendação de ativação** para o Guaraná
+Antarctica. Projeto do case Inteli x Ambev (TAPI).
+
+- **Occasion Score:** probabilidade calibrada (0 a 100) de uma pessoa comer pizza com
+  refrigerante em um turno, dado o momento, o lugar e o público. Treinado nos microdados da
+  POF/IBGE.
+- **Decision Engine:** regras explícitas e documentadas que escolhem uma categoria de ativação
+  a partir do score, do contexto e dos fatores, com justificativa.
+- **API (FastAPI) e app (Streamlit):** simulador de contexto, Mapa de Oportunidade e página
+  do modelo. O app chama a API por HTTP.
+- **Extra entregue:** Mapa de Oportunidade com 319 municípios priorizados.
+
+> Vídeo de demonstração: _link a incluir_.
+
+## Sumário
+
+1. [Como rodar](#como-rodar)
+2. [Arquitetura](#arquitetura)
+3. [Dados](#dados)
+4. [Metodologia](#metodologia)
+5. [Resultados](#resultados)
+6. [Decision Engine](#decision-engine)
+7. [Mapa de Oportunidade](#mapa-de-oportunidade)
+8. [Limitações](#limitações)
+9. [Estrutura do repositório](#estrutura-do-repositório)
+10. [English summary](#english-summary)
+
+## Como rodar
+
+Pré-requisitos: [uv](https://docs.astral.sh/uv/) (instala o Python 3.14 fixado em
+`.python-version`) e cerca de 3 GB livres se for refazer o pipeline.
+
+### App e API (não precisa baixar dados)
+
+O modelo treinado (`models/`) e os pontos do Mapa de Oportunidade (`data/referencia/`) estão
+versionados, então a demonstração roda direto de um clone:
+
+```bash
+uv sync
+./app/rodar.sh
+```
+
+O script sobe a API em http://localhost:8000 (documentação interativa em `/docs`) e o app em
+http://localhost:8501. Para subir separado:
+
+```bash
+uv run uvicorn occasion.api.app:app --port 8000
+OCCASION_API_URL=http://localhost:8000 uv run streamlit run app/streamlit_app.py
+```
+
+Exemplo de chamada:
+
+```bash
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d '{
+  "turno": "noite", "dia_semana": 6, "regiao": "Sudeste", "tipo_area": "capital",
+  "faixa_idade": "25-29", "sexo": "mulher", "renda_sm": 5, "canal": "delivery"
+}'
+```
+
+A resposta segue o contrato do case: `occasion_score`, `classification`, `top_factors`,
+`recommendation_category`, `recommendation_reason` e `model_metadata`, mais o canal, as
+mensagens, a regra aplicada e o melhor momento da semana para o mesmo perfil.
+
+### Pipeline completo (reproduz os números)
+
+```bash
+uv run python -m occasion.ingestao.download       # microdados da POF no FTP do IBGE (~2,3 GB)
+uv run python -m occasion.ingestao.pof            # consumo harmonizado das duas edições
+uv run python -m occasion.modelagem.tabela        # tabela de modelagem
+uv run python -m occasion.modelagem.experimentos  # baseline, logística, LightGBM e ablação
+uv run --group automl python -m occasion.modelagem.candidatos  # candidatos e AutoML
+uv run python -m occasion.modelagem.final         # modelo do app (models/)
+uv run python -m occasion.modelagem.avaliacao     # importância, faixas, segmentos e erros
+```
+
+Os relatórios gerados ficam em `data/processed/`; as cópias usadas nesta entrega estão em
+[`docs/relatorios/`](docs/relatorios/). O Mapa de Oportunidade tem o próprio pipeline (Censo
+2022, CNPJ e OSM; veja a docstring de `occasion.mapa.oportunidade`).
+
+EDA:
+
+```bash
+uv run --group eda jupytext --to ipynb --set-kernel python3 --execute notebooks/eda_occasion_score.py
+```
+
+### Testes
+
+```bash
+uv run pytest -m "not dados"   # roda no CI, sem os microdados
+uv run pytest                  # inclui os testes com os microdados reais
+uv run ruff check && uv run ruff format --check
+```
+
+## Arquitetura
+
+Coleta, dados, modelo, regras e interface ficam em camadas separadas. O app não importa o
+modelo: toda previsão passa pela API.
+
+```mermaid
+flowchart LR
+    subgraph Fontes
+        POF[POF 2008-09 e 2017-18<br/>IBGE]
+        Censo[Censo 2022<br/>IBGE]
+        CNPJ[CNPJ<br/>Receita Federal]
+        Trends[Google Trends]
+    end
+    POF --> Ingestao[occasion.ingestao<br/>download e harmonização]
+    Ingestao --> Tabela[occasion.modelagem.tabela<br/>pessoa × dia × turno]
+    Trends -.ablação.-> Tabela
+    Tabela --> Modelo[occasion.modelagem<br/>baseline, candidatos,<br/>validação temporal]
+    Modelo --> Final[(models/<br/>occasion_score_v1.0.0)]
+    Final --> Engine[occasion.decisao.engine<br/>regras de ativação]
+    Final --> Mapa[occasion.mapa<br/>Mapa de Oportunidade]
+    Censo --> Mapa
+    CNPJ --> Mapa
+    Engine --> API[occasion.api<br/>FastAPI]
+    Mapa --> API
+    API -->|HTTP| App[app/<br/>Streamlit]
+```
+
+| camada | tecnologia | por quê |
+|---|---|---|
+| Ingestão | Python, urllib, leitura do layout SAS do IBGE | os microdados vêm em largura fixa com programas de leitura SAS |
+| Dados | pandas, Parquet | volume cabe em memória (1,2 milhão de linhas de consumo em 2017-18) |
+| Modelo | scikit-learn (logística com splines, Platt), LightGBM, FLAML | candidatos de capacidade crescente; a escolha é por experimento |
+| Explicação | SHAP linear exato da logística | a contribuição de cada feature é fechada e soma ao logit do score |
+| Serviço | FastAPI + Pydantic | contrato de entrada e saída validado |
+| Interface | Streamlit + pydeck + Altair | demonstração com mapa |
+| Reprodutibilidade | uv (lock), pytest, ruff, GitHub Actions | ambiente fixado e testes no CI |
+
+## Dados
+
+Detalhes no [Data Card](docs/data_card.md).
+
+- **Unidade de análise:** pessoa × dia de registro × turno (manhã, almoço, tarde, noite).
+- **Target:** pizza e refrigerante (genérico ou marca) com até 1 hora de diferença no turno.
+  É consumo real declarado no diário alimentar da POF, não um proxy.
+- **Fonte:** POF 2008-09 (267.612 linhas, 668 ocasiões) e POF 2017-18 (340.072 linhas, 811
+  ocasiões), Consumo Alimentar Pessoal, IBGE. É a única fonte pública nacional com o que cada
+  pessoa comeu e bebeu, em que dia da semana e a que horas, com peso amostral.
+- **Por que não só Guaraná:** o Guaraná aparece em 185 das 811 ocasiões de 2017-18, pouco
+  para um modelo. O modelo estima a ocasião em que o Guaraná compete; a fatia de Guaraná dentro
+  dela (21%, IC95 15% a 28%) entra no Decision Engine.
+- **Instante de previsão:** antes do turno, só com perfil, lugar e calendário. Local, tipo de
+  refeição, dia atípico e itens consumidos ficam fora do modelo.
+- **Google Trends** é proxy de interesse: testado como feature (empatou com a região) e mantido
+  fora do modelo; nunca é target.
+
+## Metodologia
+
+A análise exploratória e as decisões de feature engineering estão em
+[`notebooks/eda_occasion_score.ipynb`](notebooks/eda_occasion_score.ipynb).
+
+1. **Baseline (sem ML):** taxa histórica ponderada por dia da semana × turno, o "sexta à noite
+   é bom para pizza" do brief.
+2. **Candidatos:** regressão logística (one-hot e splines na renda), logística com interação
+   turno × dia, LightGBM regularizado, Random Forest e AutoML (FLAML).
+3. **Validação temporal:** treino na POF 2008-09, teste na POF 2017-18. Hiperparâmetros por
+   validação cruzada agrupada por setor censitário dentro de 2008-09. A escolha entre
+   candidatos usa metade dos setores de 2017-18; a outra metade só mede. Regra: maior PR-AUC
+   na seleção, mas se a diferença para um candidato mais simples tem IC95 com zero, fica o mais
+   simples.
+4. **Métrica principal: PR-AUC.** A ocasião ocorre em 0,33% dos turnos; com tantos negativos o
+   ROC-AUC fica alto mesmo para modelos fracos. O custo de um falso positivo é uma ativação
+   pouco relevante, e o de um falso negativo é uma ocasião que passa; a PR-AUC mede o
+   equilíbrio entre os dois no ranking. Também reportamos ROC-AUC, lift e recall nos 10%
+   maiores scores, precisão, recall e F1 no limiar, matriz de confusão e calibração.
+5. **Ablação:** `tem_crianca`, `n_moradores`, Trends × região, dia agrupado. Saíram as que não
+   mudaram a PR-AUC (IC95 por bootstrap pareado de setores cruzando zero).
+6. **Modelo do app:** a logística escolhida, reajustada nas duas edições e calibrada por Platt
+   em previsões fora da amostra de 2017-18. Features finais: turno, dia da semana, região,
+   tipo de área, faixa de idade, sexo e percentil de renda.
+7. **Explicação:** SHAP linear (exato para a logística), em logit calibrado, por previsão; e
+   permutation importance na validação temporal.
+
+## Resultados
+
+Validação temporal (treino 2008-09, teste 2017-18, pesos da POF com cada dia da semana valendo
+1/7). Reproduzido por `occasion.modelagem.final.metricas_temporais`.
+
+| métrica | baseline (dia × turno) | logística final |
+|---|---|---|
+| PR-AUC | 0,0182 | **0,0288** |
+| ROC-AUC | 0,880 | **0,899** |
+| Lift nos 10% maiores | 5,8× | **6,9×** |
+| Recall nos 10% maiores | 58% | **69%** |
+
+- Ganho de PR-AUC sobre o baseline: +0,011 (IC95 +0,005 a +0,019).
+- O LightGBM empatou com a logística (0,027) com intervalo dez vezes mais largo; o AutoML
+  (0,023) não superou o baseline de forma significativa na metade de avaliação. Fica a
+  logística, mais simples e estável.
+- Calibração: média prevista 0,327% contra 0,327% observada; Brier 0,00321.
+- Importância (queda da PR-AUC ao embaralhar): turno 80%, dia da semana 29%, renda 19%, faixa de
+  idade 13%, região 5%.
+- Faixas do score: **alta** (10% maiores da população) concentra 69% das ocasiões; **média**
+  (10% a 30%), 24%; **baixa** (70% da população), 7%.
+- Segmentos: o modelo ganha do baseline em todos os dias da semana e regiões; subestima o
+  Nordeste (previsto/observado 0,63) e superestima o Centro-Oeste (1,48) e a classe A (1,92).
+
+Relatórios completos: [experimentos](docs/relatorios/experimentos_occasion_score.md),
+[candidatos](docs/relatorios/candidatos_occasion_score.md),
+[avaliação, segmentos e erros](docs/relatorios/avaliacao_occasion_score.md).
+
+## Decision Engine
+
+Recebe o score, o contexto e os fatores e aplica cinco regras em ordem (a primeira que vale
+decide). Não é uma segunda previsão: sem histórico de ações e resultados, a recomendação é uma
+decisão estruturada, e o sistema não afirma que uma ação vende mais que outra.
+
+| regra | condição | categoria | por quê |
+|---|---|---|---|
+| 1 | faixa baixa fora da noite | sem ativação | 93% das ocasiões são à noite |
+| 2 | faixa alta | conversão no momento da pizza (combo pizza + Guaraná), no canal informado | a ocasião é provável e o Guaraná está em só 21% delas, sem segmento que difira |
+| 3 | o mesmo perfil chega à faixa alta no seu melhor dia e turno | criar frequência: criadores online, depois pizzaria do bairro | há afinidade no perfil; que a ação crie consumo novo é hipótese |
+| 4 | faixa média e classe B a D | awareness e associação com criadores do segmento | B a D somam 86% das ocasiões; a classe A, 5% |
+| 5 | resto | sem ativação (monitorar) | |
+
+Código: [`src/occasion/decisao/engine.py`](src/occasion/decisao/engine.py).
+
+## Mapa de Oportunidade
+
+Extra do case. Aplica o modelo, sem retreinar, ao público de 20 a 44 anos dos 319 municípios
+com 100 mil habitantes ou mais (Censo 2022) e cruza com a oferta de pizzarias ativas no CNPJ
+(25.474 estabelecimentos). Quatro regras: potencial alto e oferta alta → pizzaria do bairro (64
+municípios); potencial alto e oferta baixa → delivery e criadores (28); potencial médio com
+maioria B a D → awareness (164); o resto → monitorar (63). Relatório:
+[`docs/relatorios/mapa_oportunidade.md`](docs/relatorios/mapa_oportunidade.md).
+
+## Limitações
+
+- O dado mais recente é a POF 2017-18 (antes da pandemia e da expansão do delivery). A checagem
+  com Google Trends e divulgações do iFood de 2024 a 2026 confirmou o padrão de noite e fim de
+  semana, mas o nível da taxa pode ter mudado. A POF 2024-25 ainda não tem microdados.
+- A POF não separa delivery nem registra data; canal, clima e feriados não entram no modelo.
+- 811 ocasiões em 2017-18: segmentos finos (classe A, sábado) têm intervalos largos.
+- O modelo é aditivo: o melhor dia e turno é o mesmo (sábado à noite) para todo perfil.
+- Mensagens e a regra 3 trazem hipóteses marcadas como tais; nenhuma recomendação afirma
+  efeito causal.
+
+## Estrutura do repositório
+
+```
+app/                    app Streamlit (cliente da API) e rodar.sh
+data/referencia/        dados públicos pequenos versionados (estratos, Trends, OSM, mapa)
+docs/                   Data Card e relatórios dos experimentos
+models/                 modelo final versionado (joblib + metadados)
+notebooks/              EDA (fonte .py e notebook executado)
+src/occasion/ingestao/  download e leitura dos microdados da POF
+src/occasion/modelagem/ tabela, treino, candidatos, modelo final e avaliação
+src/occasion/decisao/   Decision Engine
+src/occasion/mapa/      Mapa de Oportunidade
+src/occasion/api/       API FastAPI
+tests/                  pytest (os marcados com `dados` usam os microdados)
+```
+
+## English summary
+
+Occasion Intelligence for Pizza + Guaraná Antarctica (Inteli x Ambev case). An Occasion Score
+(calibrated probability that a person eats pizza with a soft drink in a given part of the day)
+is trained on IBGE's Household Budget Survey (POF) food diaries, with temporal validation
+(train 2008-09, test 2017-18). A logistic regression beats the day × time-of-day baseline on
+PR-AUC (0.0288 vs 0.0182; top-10% recall 69% vs 58%) and was kept over LightGBM, Random Forest
+and AutoML by a simplicity rule. A rule-based Decision Engine turns score, context and SHAP
+factors into an activation category with its reason. A FastAPI service exposes the contract
+(`/predict`, `/model`, `/mapa`), and a Streamlit app consumes it over HTTP. The optional
+Opportunity Map ranks 319 Brazilian cities by expected occasions and pizzeria supply. Run with
+`uv sync && ./app/rodar.sh`. See the [Data Card](docs/data_card.md) for sources, leakage
+strategy, biases and licensing.
