@@ -64,10 +64,16 @@ class ContextoEntrada(BaseModel):
         description="1 = segunda ... 7 = domingo"
     )
     regiao: Regiao
-    tipo_area: TipoArea = Field(description="estrato da POF: capital, resto da RM, interior, rural")
+    tipo_area: TipoArea = Field(
+        description="estrato da POF: capital, resto_rm (resto da região metropolitana), "
+        "interior_urbano ou rural"
+    )
     faixa_idade: FaixaIdade
     sexo: Sexo
-    renda_sm: float = Field(ge=0, description="renda mensal do domicílio em salários mínimos")
+    # strict: true ou "5" não podem virar número (o engine também recusa bool).
+    renda_sm: Annotated[float, Field(strict=True, ge=0)] = Field(
+        description="renda mensal do domicílio em salários mínimos"
+    )
     canal: Canal | None = Field(
         default=None, description="canal da ativação; só muda o canal da regra 2"
     )
@@ -159,7 +165,7 @@ def opcoes() -> dict:
     """Valores aceitos em cada campo da entrada (para montar formulários)."""
     return {
         "turno": list(TURNOS),
-        "dia_semana": engine.DIAS,
+        "dia_semana": [{"valor": d, "dia": nome} for d, nome in engine.DIAS.items()],
         "regiao": engine.REGIOES,
         "tipo_area": engine.TIPOS_AREA,
         "faixa_idade": list(FAIXAS_IDADE),
@@ -178,5 +184,8 @@ def predict(entrada: ContextoEntrada, request: Request) -> dict:
             status_code=409,
             detail=f"versão pedida {entrada.versao_modelo}, versão servida {versao}",
         )
-    contexto = engine.Contexto(**entrada.model_dump(exclude={"versao_modelo"}))
+    try:
+        contexto = engine.Contexto(**entrada.model_dump(exclude={"versao_modelo"}))
+    except ValueError as erro:  # regra do engine que o schema não cobre
+        raise HTTPException(status_code=422, detail=str(erro)) from erro
     return engine.decidir(contexto, modelo).como_dict()

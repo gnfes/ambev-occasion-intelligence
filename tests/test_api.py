@@ -75,6 +75,8 @@ def test_canal_e_opcional(cliente):
         ("faixa_idade", "25-34"),
         ("sexo", "outro"),
         ("renda_sm", -1),
+        ("renda_sm", True),
+        ("renda_sm", "5"),
         ("canal", "ifood"),
         ("extra", 1),
     ],
@@ -94,4 +96,25 @@ def test_versao_diferente_e_recusada(cliente):
 def test_opcoes_batem_com_o_engine(cliente):
     o = cliente.get("/opcoes").json()
     assert o["regiao"] == engine.REGIOES
-    assert set(o["dia_semana"]) == {str(d) for d in engine.DIAS}
+    assert [d["valor"] for d in o["dia_semana"]] == list(engine.DIAS)
+
+
+def test_valores_de_opcoes_sao_aceitos_no_predict(cliente):
+    o = cliente.get("/opcoes").json()
+    for d in o["dia_semana"]:
+        assert (
+            cliente.post("/predict", json={**ENTRADA, "dia_semana": d["valor"]}).status_code == 200
+        )
+    for campo in ("turno", "regiao", "tipo_area", "faixa_idade", "sexo", "canal"):
+        for v in o[campo]:
+            assert cliente.post("/predict", json={**ENTRADA, campo: v}).status_code == 200
+
+
+def test_erro_do_engine_vira_422(cliente, monkeypatch):
+    def recusa(*a, **k):
+        raise ValueError("tipo_area recusado pelo engine")
+
+    monkeypatch.setattr(engine, "Contexto", recusa)
+    r = cliente.post("/predict", json=ENTRADA)
+    assert r.status_code == 422
+    assert "tipo_area" in r.json()["detail"]
