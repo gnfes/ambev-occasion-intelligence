@@ -24,6 +24,12 @@ dev = [
     "pytest>=9.2.0",
     "ruff>=0.17.5",
 ]
+eda = [
+    "ipykernel>=7.4.0",
+    "jupytext>=1.19.7",
+    "matplotlib>=3.11.2",
+    "nbconvert>=7.17.2",
+]
 mapa = [
     "geopandas>=1.2.0",
     "openpyxl>=3.1.5",
@@ -46,3 +52,7 @@ line-length = 100
 [tool.ruff.lint.isort]
 # Módulos do app Streamlit, importados a partir da pasta app/.
 known-first-party = ["occasion", "cliente", "rotulos"]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebook (jupytext): a última expressão da célula é a saída exibida.
+"notebooks/*.py" = ["B018"]
