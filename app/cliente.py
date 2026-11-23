@@ -47,7 +47,7 @@ def mapa() -> list[dict]:
     return _pedir("GET", "/mapa")
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=3600, max_entries=2000, show_spinner=False)
 def prever(entrada: tuple) -> dict:
     """POST /predict. A entrada vem como tupla de pares para o cache do Streamlit."""
     return _pedir("POST", "/predict", json=dict(entrada))

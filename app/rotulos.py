@@ -1,10 +1,10 @@
 """Rótulos legíveis dos valores aceitos pela API."""
 
 TURNOS = {
-    "manha": "Manhã (até 10h)",
-    "almoco": "Almoço (10h às 14h)",
-    "tarde": "Tarde (14h às 17h)",
-    "noite": "Noite (depois das 17h)",
+    "manha": "Manhã (0h às 10h)",
+    "almoco": "Almoço (11h às 14h)",
+    "tarde": "Tarde (15h às 17h)",
+    "noite": "Noite (18h às 23h)",
 }
 TIPOS_AREA = {
     "capital": "Capital",

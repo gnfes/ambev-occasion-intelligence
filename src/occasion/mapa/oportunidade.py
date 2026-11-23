@@ -453,7 +453,7 @@ def main(destino: Path = PROCESSED_DIR) -> None:
         json.dumps({"meta": meta, "municipios": pontos}, ensure_ascii=False, allow_nan=False),
         encoding="utf-8",
     )
-    pd.DataFrame(pontos).to_csv(ARQUIVO_PONTOS_REFERENCIA, index=False)
+    pd.DataFrame(pontos).to_csv(destino / ARQUIVO_PONTOS_REFERENCIA.name, index=False)
     print(ranking.groupby("recomendacao").size())
 
 
