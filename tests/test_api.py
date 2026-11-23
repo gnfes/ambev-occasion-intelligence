@@ -118,3 +118,12 @@ def test_erro_do_engine_vira_422(cliente, monkeypatch):
     r = cliente.post("/predict", json=ENTRADA)
     assert r.status_code == 422
     assert "tipo_area" in r.json()["detail"]
+
+
+def test_mapa_tem_os_319_municipios_em_ordem(cliente):
+    pontos = cliente.get("/mapa").json()
+    assert len(pontos) == 319
+    assert [p["prioridade"] for p in pontos] == sorted(p["prioridade"] for p in pontos)
+    assert all(-34 < p["lat"] < 6 and -74 < p["lon"] < -34 for p in pontos)
+    monitorar = [p for p in pontos if p["categoria"] == "monitorar"]
+    assert monitorar and all(p["canal"] is None for p in monitorar)
