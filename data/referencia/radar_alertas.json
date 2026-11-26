@@ -1,0 +1,1891 @@
+{
+ "gerado_em": "2026-11-26",
+ "semana_ate": "2026-11-15",
+ "fontes": {
+  "trends": "Google Trends, 'pizza', categoria Comida e bebida, por UF, semanal, 5 anos",
+  "feriados": "BrasilAPI, feriados nacionais",
+  "clima": "Open-Meteo (ERA5 e previsão de 16 dias), capital da UF",
+  "mapa": "Mapa de Oportunidade (Occasion Score no Censo 2022 + CNPJ)"
+ },
+ "validacao": {
+  "meta": {
+   "n_treino": 2664,
+   "n_teste": 2352,
+   "teste_de": "2025-01-05",
+   "teste_ate": "2026-11-15",
+   "semanas_com_evento_no_teste": 24
+  },
+  "modelos": [
+   {
+    "modelo": "baseline (igual à média do último ano)",
+    "mae": 12.63,
+    "ganho_vs_baseline": 0.0,
+    "ic95_ganho": [
+     0.0,
+     0.0
+    ],
+    "mae_semanas_com_evento": 13.55,
+    "ganho_semanas_com_evento": 0.0,
+    "ic95_ganho_semanas_com_evento": [
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "modelo": "calendário",
+    "mae": 12.15,
+    "ganho_vs_baseline": 0.48,
+    "ic95_ganho": [
+     -0.25,
+     1.3
+    ],
+    "mae_semanas_com_evento": 12.24,
+    "ganho_semanas_com_evento": 1.31,
+    "ic95_ganho_semanas_com_evento": [
+     -0.31,
+     3.02
+    ]
+   },
+   {
+    "modelo": "calendário + clima",
+    "mae": 12.15,
+    "ganho_vs_baseline": 0.47,
+    "ic95_ganho": [
+     -0.27,
+     1.21
+    ],
+    "mae_semanas_com_evento": 12.25,
+    "ganho_semanas_com_evento": 1.3,
+    "ic95_ganho_semanas_com_evento": [
+     -0.25,
+     3.05
+    ]
+   }
+  ]
+ },
+ "coeficientes": [
+  {
+   "variavel": "intercepto",
+   "coef": 1.288,
+   "ic95_inf": -1.762,
+   "ic95_sup": 5.312
+  },
+  {
+   "variavel": "mes_02",
+   "coef": -8.008,
+   "ic95_inf": -12.851,
+   "ic95_sup": -4.206
+  },
+  {
+   "variavel": "mes_03",
+   "coef": -8.172,
+   "ic95_inf": -13.697,
+   "ic95_sup": -4.208
+  },
+  {
+   "variavel": "mes_04",
+   "coef": -9.336,
+   "ic95_inf": -16.388,
+   "ic95_sup": -3.092
+  },
+  {
+   "variavel": "mes_05",
+   "coef": -7.408,
+   "ic95_inf": -12.476,
+   "ic95_sup": -3.818
+  },
+  {
+   "variavel": "mes_06",
+   "coef": -2.884,
+   "ic95_inf": -11.103,
+   "ic95_sup": 6.611
+  },
+  {
+   "variavel": "mes_07",
+   "coef": 5.111,
+   "ic95_inf": -0.698,
+   "ic95_sup": 15.211
+  },
+  {
+   "variavel": "mes_08",
+   "coef": -0.411,
+   "ic95_inf": -10.408,
+   "ic95_sup": 15.194
+  },
+  {
+   "variavel": "mes_09",
+   "coef": -6.201,
+   "ic95_inf": -14.947,
+   "ic95_sup": 3.328
+  },
+  {
+   "variavel": "mes_10",
+   "coef": -13.586,
+   "ic95_inf": -18.884,
+   "ic95_sup": -8.724
+  },
+  {
+   "variavel": "mes_11",
+   "coef": -15.098,
+   "ic95_inf": -19.842,
+   "ic95_sup": -9.778
+  },
+  {
+   "variavel": "mes_12",
+   "coef": -5.306,
+   "ic95_inf": -11.445,
+   "ic95_sup": -0.905
+  },
+  {
+   "variavel": "feriado",
+   "coef": 7.286,
+   "ic95_inf": 4.251,
+   "ic95_sup": 9.384
+  },
+  {
+   "variavel": "carnaval",
+   "coef": 23.981,
+   "ic95_inf": 21.127,
+   "ic95_sup": 27.325
+  },
+  {
+   "variavel": "natal_ano_novo",
+   "coef": 18.384,
+   "ic95_inf": 13.219,
+   "ic95_sup": 27.308
+  },
+  {
+   "variavel": "dia_da_pizza",
+   "coef": 9.801,
+   "ic95_inf": -0.809,
+   "ic95_sup": 16.191
+  },
+  {
+   "variavel": "inicio_mes",
+   "coef": 1.005,
+   "ic95_inf": -1.85,
+   "ic95_sup": 4.154
+  },
+  {
+   "variavel": "anom_temp",
+   "coef": -0.215,
+   "ic95_inf": -0.925,
+   "ic95_sup": 0.631
+  },
+  {
+   "variavel": "anom_chuva",
+   "coef": 0.151,
+   "ic95_inf": 0.003,
+   "ic95_sup": 0.326
+  }
+ ],
+ "alertas": [
+  {
+   "sigla": "SP",
+   "capital": "São Paulo",
+   "nivel": "atencao",
+   "motivo": "interesse abaixo do mesmo período do ano passado, além da faixa de ruído",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -7.1,
+    "faixa_ruido_pct": 6.9,
+    "status": "caindo",
+    "indice_4s": 55.5,
+    "indice_4s_ano_anterior": 59.8
+   },
+   "desvio_4s_pct": -14.8,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -5.6
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.2,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "caindo",
+    "variacao_anual_pct": -30.6
+   },
+   "mapa": {
+    "municipios_no_mapa": 78,
+    "municipios_potencial_alto": 7,
+    "ocasioes_semana": 1750498,
+    "municipio_destaque": "São Paulo",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "SC",
+   "capital": "Florianópolis",
+   "nivel": "atencao",
+   "motivo": "interesse abaixo do mesmo período do ano passado, além da faixa de ruído",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -9.6,
+    "faixa_ruido_pct": 7.1,
+    "status": "caindo",
+    "indice_4s": 42.5,
+    "indice_4s_ano_anterior": 47.0
+   },
+   "desvio_4s_pct": -17.4,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -8.5
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.2,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 14,
+    "municipios_potencial_alto": 14,
+    "ocasioes_semana": 301948,
+    "municipio_destaque": "Florianópolis",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "MS",
+   "capital": "Campo Grande",
+   "nivel": "atencao",
+   "motivo": "interesse abaixo do mesmo período do ano passado, além da faixa de ruído",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -15.6,
+    "faixa_ruido_pct": 9.6,
+    "status": "caindo",
+    "indice_4s": 42.0,
+    "indice_4s_ano_anterior": 49.8
+   },
+   "desvio_4s_pct": -18.4,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -9.1
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.3,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 3,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 72365,
+    "municipio_destaque": "Campo Grande",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "AL",
+   "capital": "Maceió",
+   "nivel": "atencao",
+   "motivo": "interesse abaixo do mesmo período do ano passado, além da faixa de ruído",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -18.6,
+    "faixa_ruido_pct": 14.7,
+    "status": "caindo",
+    "indice_4s": 40.5,
+    "indice_4s_ano_anterior": 49.8
+   },
+   "desvio_4s_pct": -34.5,
+   "fatores_4s": [
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -24.7
+    },
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.0,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 2,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 85187,
+    "municipio_destaque": "Maceió",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "TO",
+   "capital": "Palmas",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": 18.2,
+    "faixa_ruido_pct": 19.5,
+    "status": "estável",
+    "indice_4s": 50.2,
+    "indice_4s_ano_anterior": 42.5
+   },
+   "desvio_4s_pct": -2.5,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": 7.2
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.4,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 2,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 29386,
+    "municipio_destaque": "Palmas",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "AM",
+   "capital": "Manaus",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": 5.9,
+    "faixa_ruido_pct": 16.7,
+    "status": "estável",
+    "indice_4s": 54.2,
+    "indice_4s_ano_anterior": 51.2
+   },
+   "desvio_4s_pct": -0.1,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": 9.7
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.9,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 3,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 129664,
+    "municipio_destaque": "Manaus",
+    "recomendacao_destaque": "Conversão no delivery e com criadores",
+    "canal_destaque": "apps de delivery e criadores de conteúdo"
+   }
+  },
+  {
+   "sigla": "MA",
+   "capital": "São Luís",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": 3.2,
+    "faixa_ruido_pct": 13.4,
+    "status": "estável",
+    "indice_4s": 40.5,
+    "indice_4s_ano_anterior": 39.2
+   },
+   "desvio_4s_pct": -15.7,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -6.2
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.9,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 10,
+    "municipios_potencial_alto": 3,
+    "ocasioes_semana": 151103,
+    "municipio_destaque": "São Luís",
+    "recomendacao_destaque": "Conversão no delivery e com criadores",
+    "canal_destaque": "apps de delivery e criadores de conteúdo"
+   }
+  },
+  {
+   "sigla": "PI",
+   "capital": "Teresina",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": 2.0,
+    "faixa_ruido_pct": 16.6,
+    "status": "estável",
+    "indice_4s": 38.5,
+    "indice_4s_ano_anterior": 37.8
+   },
+   "desvio_4s_pct": -11.9,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -2.1
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.5,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 2,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 79146,
+    "municipio_destaque": "Teresina",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "RO",
+   "capital": "Porto Velho",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -1.6,
+    "faixa_ruido_pct": 13.8,
+    "status": "estável",
+    "indice_4s": 46.8,
+    "indice_4s_ano_anterior": 47.5
+   },
+   "desvio_4s_pct": -11.2,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.6,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 2,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 31790,
+    "municipio_destaque": "Porto Velho",
+    "recomendacao_destaque": "Conversão no delivery e com criadores",
+    "canal_destaque": "apps de delivery e criadores de conteúdo"
+   }
+  },
+  {
+   "sigla": "SE",
+   "capital": "Aracaju",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -3.0,
+    "faixa_ruido_pct": 20.0,
+    "status": "estável",
+    "indice_4s": 40.8,
+    "indice_4s_ano_anterior": 42.0
+   },
+   "desvio_4s_pct": -15.5,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -5.9
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.8,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 4,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 66234,
+    "municipio_destaque": "Aracaju",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "MG",
+   "capital": "Belo Horizonte",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -3.1,
+    "faixa_ruido_pct": 11.1,
+    "status": "estável",
+    "indice_4s": 46.5,
+    "indice_4s_ano_anterior": 48.0
+   },
+   "desvio_4s_pct": -16.0,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -6.8
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.5,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "caindo",
+    "variacao_anual_pct": -29.3
+   },
+   "mapa": {
+    "municipios_no_mapa": 34,
+    "municipios_potencial_alto": 2,
+    "ocasioes_semana": 447356,
+    "municipio_destaque": "Belo Horizonte",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "RN",
+   "capital": "Natal",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -3.5,
+    "faixa_ruido_pct": 14.3,
+    "status": "estável",
+    "indice_4s": 55.0,
+    "indice_4s_ano_anterior": 57.0
+   },
+   "desvio_4s_pct": -14.1,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -4.5
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.0,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 4,
+    "municipios_potencial_alto": 2,
+    "ocasioes_semana": 91195,
+    "municipio_destaque": "Natal",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "GO",
+   "capital": "Goiânia",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -4.1,
+    "faixa_ruido_pct": 10.9,
+    "status": "estável",
+    "indice_4s": 53.2,
+    "indice_4s_ano_anterior": 55.5
+   },
+   "desvio_4s_pct": -10.2,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.0,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 15,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 202201,
+    "municipio_destaque": "Goiânia",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "PA",
+   "capital": "Belém",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -5.5,
+    "faixa_ruido_pct": 14.5,
+    "status": "estável",
+    "indice_4s": 43.0,
+    "indice_4s_ano_anterior": 45.5
+   },
+   "desvio_4s_pct": -12.8,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -3.3
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.8,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 15,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 160855,
+    "municipio_destaque": "Belém",
+    "recomendacao_destaque": "Conversão no delivery e com criadores",
+    "canal_destaque": "apps de delivery e criadores de conteúdo"
+   }
+  },
+  {
+   "sigla": "PE",
+   "capital": "Recife",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -5.5,
+    "faixa_ruido_pct": 12.8,
+    "status": "estável",
+    "indice_4s": 43.2,
+    "indice_4s_ano_anterior": 45.8
+   },
+   "desvio_4s_pct": -17.4,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -7.6
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.0,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "caindo",
+    "variacao_anual_pct": -43.0
+   },
+   "mapa": {
+    "municipios_no_mapa": 12,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 236944,
+    "municipio_destaque": "Recife",
+    "recomendacao_destaque": "Conversão no delivery e com criadores",
+    "canal_destaque": "apps de delivery e criadores de conteúdo"
+   }
+  },
+  {
+   "sigla": "MT",
+   "capital": "Cuiabá",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -5.9,
+    "faixa_ruido_pct": 11.1,
+    "status": "estável",
+    "indice_4s": 47.5,
+    "indice_4s_ano_anterior": 50.5
+   },
+   "desvio_4s_pct": -10.8,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.4,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 6,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 85392,
+    "municipio_destaque": "Cuiabá",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "CE",
+   "capital": "Fortaleza",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -6.1,
+    "faixa_ruido_pct": 12.0,
+    "status": "estável",
+    "indice_4s": 50.0,
+    "indice_4s_ano_anterior": 53.2
+   },
+   "desvio_4s_pct": -17.2,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -7.6
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.0,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "estável",
+    "variacao_anual_pct": -23.5
+   },
+   "mapa": {
+    "municipios_no_mapa": 8,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 255380,
+    "municipio_destaque": "Fortaleza",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "ES",
+   "capital": "Vitória",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -6.1,
+    "faixa_ruido_pct": 14.1,
+    "status": "estável",
+    "indice_4s": 50.2,
+    "indice_4s_ano_anterior": 53.5
+   },
+   "desvio_4s_pct": -16.7,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -7.0
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.6,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 9,
+    "municipios_potencial_alto": 2,
+    "ocasioes_semana": 105042,
+    "municipio_destaque": "Vitória",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "BA",
+   "capital": "Salvador",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -6.2,
+    "faixa_ruido_pct": 12.2,
+    "status": "estável",
+    "indice_4s": 45.5,
+    "indice_4s_ano_anterior": 48.5
+   },
+   "desvio_4s_pct": -15.3,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -5.9
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.7,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "estável",
+    "variacao_anual_pct": -10.5
+   },
+   "mapa": {
+    "municipios_no_mapa": 18,
+    "municipios_potencial_alto": 2,
+    "ocasioes_semana": 326025,
+    "municipio_destaque": "Lauro de Freitas",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "RJ",
+   "capital": "Rio de Janeiro",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -6.3,
+    "faixa_ruido_pct": 11.1,
+    "status": "estável",
+    "indice_4s": 52.2,
+    "indice_4s_ano_anterior": 55.8
+   },
+   "desvio_4s_pct": -18.9,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -9.5
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.1,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "estável",
+    "variacao_anual_pct": -22.4
+   },
+   "mapa": {
+    "municipios_no_mapa": 28,
+    "municipios_potencial_alto": 2,
+    "ocasioes_semana": 656958,
+    "municipio_destaque": "Niterói",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "PB",
+   "capital": "João Pessoa",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -7.2,
+    "faixa_ruido_pct": 13.0,
+    "status": "estável",
+    "indice_4s": 48.2,
+    "indice_4s_ano_anterior": 52.0
+   },
+   "desvio_4s_pct": -17.4,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -7.6
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.0,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 4,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 95568,
+    "municipio_destaque": "João Pessoa",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "PR",
+   "capital": "Curitiba",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -7.5,
+    "faixa_ruido_pct": 8.7,
+    "status": "estável",
+    "indice_4s": 49.0,
+    "indice_4s_ano_anterior": 53.0
+   },
+   "desvio_4s_pct": -14.3,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -5.2
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 1.1,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "caindo",
+    "variacao_anual_pct": -42.3
+   },
+   "mapa": {
+    "municipios_no_mapa": 22,
+    "municipios_potencial_alto": 22,
+    "ocasioes_semana": 506528,
+    "municipio_destaque": "Curitiba",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "RS",
+   "capital": "Porto Alegre",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -8.4,
+    "faixa_ruido_pct": 10.7,
+    "status": "estável",
+    "indice_4s": 51.5,
+    "indice_4s_ano_anterior": 56.2
+   },
+   "desvio_4s_pct": -18.7,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -9.3
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.9,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "caindo",
+    "variacao_anual_pct": -73.4
+   },
+   "mapa": {
+    "municipios_no_mapa": 19,
+    "municipios_potencial_alto": 19,
+    "ocasioes_semana": 391756,
+    "municipio_destaque": "Porto Alegre",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "DF",
+   "capital": "Brasília",
+   "nivel": "estavel",
+   "motivo": "interesse dentro da faixa de ruído da UF",
+   "tendencia": {
+    "semana_ate": "2026-11-15",
+    "variacao_anual_pct": -10.3,
+    "faixa_ruido_pct": 10.4,
+    "status": "estável",
+    "indice_4s": 54.2,
+    "indice_4s_ano_anterior": 60.5
+   },
+   "desvio_4s_pct": -13.9,
+   "fatores_4s": [
+    {
+     "fator": "sazonalidade",
+     "descricao": "época do ano",
+     "pontos_pct": -13.4
+    },
+    {
+     "fator": "nao_explicado",
+     "descricao": "não explicado pelo calendário e pelo clima",
+     "pontos_pct": -5.1
+    },
+    {
+     "fator": "feriado",
+     "descricao": "semana com feriado nacional",
+     "pontos_pct": 3.6
+    }
+   ],
+   "proxima_janela": {
+    "semanas": [
+     "2026-11-29",
+     "2026-12-06",
+     "2026-12-13",
+     "2026-12-20"
+    ],
+    "feriados": [
+     "Natal"
+    ],
+    "desvio_previsto_pct": 0.7,
+    "fatores": [
+     {
+      "fator": "natal_ano_novo",
+      "descricao": "Natal e Ano-Novo",
+      "pontos_pct": 4.6
+     },
+     {
+      "fator": "sazonalidade",
+      "descricao": "época do ano",
+      "pontos_pct": -4.0
+     }
+    ],
+    "clima_previsto": true
+   },
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 1,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 194043,
+    "municipio_destaque": "Brasília",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "AC",
+   "capital": "Rio Branco",
+   "nivel": "sem_volume",
+   "motivo": "o Trends devolve volume insuficiente (zero) em mais de 20% das semanas; a UF não é lida",
+   "tendencia": null,
+   "desvio_4s_pct": null,
+   "fatores_4s": [],
+   "proxima_janela": null,
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 1,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 21236,
+    "municipio_destaque": "Rio Branco",
+    "recomendacao_destaque": "Conversão no delivery e com criadores",
+    "canal_destaque": "apps de delivery e criadores de conteúdo"
+   }
+  },
+  {
+   "sigla": "AP",
+   "capital": "Macapá",
+   "nivel": "sem_volume",
+   "motivo": "o Trends devolve volume insuficiente (zero) em mais de 20% das semanas; a UF não é lida",
+   "tendencia": null,
+   "desvio_4s_pct": null,
+   "fatores_4s": [],
+   "proxima_janela": null,
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 2,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 30582,
+    "municipio_destaque": "Macapá",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  },
+  {
+   "sigla": "RR",
+   "capital": "Boa Vista",
+   "nivel": "sem_volume",
+   "motivo": "o Trends devolve volume insuficiente (zero) em mais de 20% das semanas; a UF não é lida",
+   "tendencia": null,
+   "desvio_4s_pct": null,
+   "fatores_4s": [],
+   "proxima_janela": null,
+   "marca_guarana": {
+    "status": "sem volume",
+    "variacao_anual_pct": null
+   },
+   "mapa": {
+    "municipios_no_mapa": 1,
+    "municipios_potencial_alto": 1,
+    "ocasioes_semana": 26299,
+    "municipio_destaque": "Boa Vista",
+    "recomendacao_destaque": "Conversão com a pizzaria do bairro (combo pizza + Guaraná)",
+    "canal_destaque": "pizzarias do bairro (parceria local), depois criadores locais"
+   }
+  }
+ ]
+}

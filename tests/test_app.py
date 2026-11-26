@@ -32,11 +32,18 @@ def via_testclient(api, monkeypatch):
         return r.json()
 
     monkeypatch.setattr(cliente, "_pedir", pedir)
-    for f in (cliente.opcoes, cliente.modelo, cliente.mapa, cliente.prever):
+    for f in (
+        cliente.opcoes,
+        cliente.modelo,
+        cliente.mapa,
+        cliente.radar,
+        cliente.radar_uf,
+        cliente.prever,
+    ):
         f.clear()
 
 
-@pytest.mark.parametrize("pagina", ["simulador", "mapa", "modelo"])
+@pytest.mark.parametrize("pagina", ["simulador", "mapa", "radar", "modelo"])
 def test_pagina_roda_sem_erro(pagina):
     at = AppTest.from_file(str(APP / "paginas" / f"{pagina}.py"), default_timeout=60).run()
     assert not at.exception, at.exception
