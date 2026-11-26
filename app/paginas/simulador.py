@@ -74,9 +74,22 @@ media = 100 * meta["taxa_media_2017_18"]
 faixa = r["classification"]
 
 pc = r.get("class_position") or {}
+inc = r.get("uncertainty") or {}
+ic = inc.get("occasion_score_ic95")
+prob = inc.get("prob_faixa") or {}
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Occasion Score", f"{r['occasion_score']:.2f} / 100")
-c2.metric("Faixa", R.FAIXAS[faixa])
+c1.metric(
+    "Occasion Score",
+    f"{r['occasion_score']:.2f} / 100",
+    f"IC95 {ic[0]:.2f} a {ic[1]:.2f}" if ic else "sem intervalo",
+    delta_color="off",
+)
+c2.metric(
+    "Faixa",
+    R.FAIXAS[faixa],
+    f"em {100 * prob[faixa]:.0f}% das reamostragens" if prob else None,
+    delta_color="off",
+)
 c3.metric("Comparado à média da população", f"{r['occasion_score'] / media:.1f}×")
 if pc.get("percentil_na_classe") is not None:
     c4.metric(
@@ -94,6 +107,75 @@ st.caption(
     "nível fora da amostra (Nordeste, Centro-Oeste e rural)."
 )
 
+if ic:
+    cortes = meta["faixas"]
+    faixas_df = pd.DataFrame(
+        {
+            "faixa": ["Baixa", "Média", "Alta"],
+            "de": [0.0, 100 * cortes["corte_media"], 100 * cortes["corte_alta"]],
+            "ate": [
+                100 * cortes["corte_media"],
+                100 * cortes["corte_alta"],
+                max(ic[1], 100 * cortes["corte_alta"]) * 1.3,
+            ],
+            "y": "score",
+        }
+    )
+    ponto = pd.DataFrame([{"score": r["occasion_score"], "lo": ic[0], "hi": ic[1], "y": "score"}])
+    escala = alt.Scale(type="symlog", constant=0.05, domain=[0, float(faixas_df["ate"].max())])
+    fundo = (
+        alt.Chart(faixas_df)
+        .mark_bar(opacity=0.55, size=36)
+        .encode(
+            x=alt.X(
+                "de:Q",
+                scale=escala,
+                title=None,
+                axis=alt.Axis(values=[0, 0.1, 0.5, 1, 2, 5, 10, 20, 50]),
+            ),
+            x2="ate:Q",
+            y=alt.Y("y:N", axis=None),
+            color=alt.Color(
+                "faixa:N",
+                scale=alt.Scale(
+                    domain=["Baixa", "Média", "Alta"], range=["#9aa5b1", "#f2b134", "#c8102e"]
+                ),
+                legend=alt.Legend(orient="top", title=None),
+            ),
+            tooltip=[
+                "faixa",
+                alt.Tooltip("de:Q", format=".2f"),
+                alt.Tooltip("ate:Q", format=".2f"),
+            ],
+        )
+    )
+    barra = (
+        alt.Chart(ponto)
+        .mark_rule(strokeWidth=3, color="black")
+        .encode(x=alt.X("lo:Q", scale=escala), x2="hi:Q", y=alt.Y("y:N", axis=None))
+    )
+    marca = (
+        alt.Chart(ponto)
+        .mark_point(filled=True, size=120, color="black")
+        .encode(
+            x=alt.X("score:Q", scale=escala),
+            y=alt.Y("y:N", axis=None),
+            tooltip=[
+                alt.Tooltip("score:Q", format=".2f", title="score"),
+                alt.Tooltip("lo:Q", format=".2f", title="IC95 de"),
+                alt.Tooltip("hi:Q", format=".2f", title="IC95 até"),
+            ],
+        )
+    )
+    st.altair_chart((fundo + barra + marca).properties(height=95), use_container_width=True)
+    st.caption(
+        "Escala logarítmica. Ponto: score. Barra: intervalo de 95% por bootstrap de setores da POF "
+        f"({inc.get('metodo', '').split(';')[-1].strip()}). O intervalo mede só a variação da "
+        "amostra; não cobre a mudança de hábito desde 2017-18."
+    )
+for aviso in inc.get("avisos", []):
+    st.warning(aviso)
+
 st.divider()
 esq, dir_ = st.columns([3, 2], gap="large")
 
@@ -107,10 +189,12 @@ with esq:
         for m in r["messages"]:
             st.markdown(f"- {m}")
     bm = r["best_moment"]
+    bm_ic = bm.get("occasion_score_ic95")
     st.info(
         f"Melhor momento da semana para este perfil: **{bm['dia']}, "
-        f"{R.TURNOS[bm['turno']].split(' (')[0].lower()}**, score {bm['occasion_score']:.2f} "
-        f"(faixa {R.FAIXAS[bm['classification']].lower()})."
+        f"{R.TURNOS[bm['turno']].split(' (')[0].lower()}**, score {bm['occasion_score']:.2f}"
+        + (f" (IC95 {bm_ic[0]:.2f} a {bm_ic[1]:.2f})" if bm_ic else "")
+        + f", faixa {R.FAIXAS[bm['classification']].lower()}."
     )
 
 with dir_:
@@ -153,11 +237,15 @@ def semana(base: tuple) -> pd.DataFrame:
     for d, nome in dias.items():
         for t in op["turno"]:
             e = {**dict(base), "dia_semana": d, "turno": t}
+            resp = cliente.prever(tuple(e.items()))
+            ic_ = (resp.get("uncertainty") or {}).get("occasion_score_ic95") or [None, None]
             linhas.append(
                 {
                     "dia": nome,
                     "turno": R.TURNOS[t].split(" (")[0],
-                    "score": cliente.prever(tuple(e.items()))["occasion_score"],
+                    "score": resp["occasion_score"],
+                    "ic95_de": ic_[0],
+                    "ic95_ate": ic_[1],
                 }
             )
     return pd.DataFrame(linhas)
@@ -176,7 +264,13 @@ base = alt.Chart(grade).encode(
 st.altair_chart(
     base.mark_rect().encode(
         color=alt.Color("score:Q", scale=alt.Scale(scheme="reds"), title="Score"),
-        tooltip=["dia", "turno", alt.Tooltip("score:Q", format=".2f")],
+        tooltip=[
+            "dia",
+            "turno",
+            alt.Tooltip("score:Q", format=".2f"),
+            alt.Tooltip("ic95_de:Q", format=".2f", title="IC95 de"),
+            alt.Tooltip("ic95_ate:Q", format=".2f", title="IC95 até"),
+        ],
     )
     + base.mark_text(fontSize=13).encode(
         text=alt.Text("score:Q", format=".2f"),
@@ -186,6 +280,26 @@ st.altair_chart(
     ),
     use_container_width=True,
 )
+
+st.divider()
+fonte_col, limite_col = st.columns(2, gap="large")
+with fonte_col:
+    st.subheader("Fonte e ano de cada número")
+    for f in r.get("sources") or []:
+        st.markdown(
+            f"- **{f['numero']}.** {f['fonte']} ({f['ano']}). [Dados]({f['url']})"
+            + (f" · [cálculo]({f['detalhe']})" if f.get("detalhe") else "")
+        )
+with limite_col:
+    st.subheader("O que o modelo não sabe")
+    for limite in r.get("limitations") or []:
+        st.markdown(f"- {limite}")
+    sup = (inc.get("suporte") or {}).get("perfil")
+    if sup:
+        st.caption(
+            f"Este perfil tem {sup['ocasioes']} ocasiões reais em {sup['linhas']:,} "
+            "pessoas-turno nas duas edições da POF.".replace(",", ".")
+        )
 
 with st.expander("Ver a chamada à API (entrada e saída)"):
     st.code(f"POST {cliente.API_URL}/predict", language="text")
