@@ -73,14 +73,25 @@ except cliente.ErroApi as erro:
 media = 100 * meta["taxa_media_2017_18"]
 faixa = r["classification"]
 
-c1, c2, c3 = st.columns(3)
+pc = r.get("class_position") or {}
+c1, c2, c3, c4 = st.columns(4)
 c1.metric("Occasion Score", f"{r['occasion_score']:.2f} / 100")
 c2.metric("Faixa", R.FAIXAS[faixa])
 c3.metric("Comparado à média da população", f"{r['occasion_score'] / media:.1f}×")
+if pc.get("percentil_na_classe") is not None:
+    c4.metric(
+        f"Posição na classe {pc['classe']}",
+        f"top {max(round(100 - pc['percentil_na_classe']), 1)}%",
+        "entre os 10% maiores da classe" if pc["topo_10_na_classe"] else None,
+        delta_color="off",
+    )
 st.caption(
     f"O score é a chance, em %, de esta pessoa comer pizza com refrigerante neste turno. "
     f"A média da população em 2017-18 é {media:.2f}. Faixa alta = 10% maiores scores da "
-    "população; média = 10% a 30%."
+    "população; média = 10% a 30%. A posição na classe compara o score só com pessoas da "
+    "mesma classe de renda: serve para mirar as classes B a D sem inflar o score, e não "
+    "muda a recomendação. O score já vem corrigido nos grupos em que o modelo errava o "
+    "nível fora da amostra (Nordeste, Centro-Oeste e rural)."
 )
 
 st.divider()

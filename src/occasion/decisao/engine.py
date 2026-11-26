@@ -21,6 +21,13 @@ Regras (aprovadas em 21/11; a primeira que vale decide):
    segmento. B a D somam 86% das ocasiões; a classe A, 5%.
 5. Resto → sem ativação (monitorar).
 
+Posição na classe (26/11): além da faixa nacional, a saída traz a posição
+do score entre as pessoas-turno da mesma classe de renda em 2017-18. A regra
+continua a mesma; a posição serve para mirar a expansão B a D sem inflar o
+score. A classe D está calibrada (previsto ÷ observado 0,95, IC95 0,71 a
+1,35, `vies_por_grupo.md`), mas a ocasião é menos frequente nela, então
+poucos perfis da D chegam à faixa alta nacional.
+
 As fontes dos números estão no relatório `avaliacao_occasion_score.md` e no
 documento do plano (seção "Decision Engine").
 """
@@ -50,6 +57,8 @@ TIPOS_AREA = ["capital", "resto_rm", "interior_urbano", "rural"]
 SEXOS = {"homem": 1, "mulher": 2}
 CANAIS = ["delivery", "pizzaria", "em_casa"]
 CLASSES_EXPANSAO = {"B", "C", "D"}
+# Topo dentro da classe: mesmo corte da faixa alta nacional (10% maiores).
+TOPO_NA_CLASSE = 90.0
 
 
 class Categoria(StrEnum):
@@ -136,6 +145,7 @@ class Recomendacao:
     messages: list[str]
     rule: int
     best_moment: dict
+    class_position: dict = field(default_factory=dict)
     model_metadata: dict = field(default_factory=dict)
 
     def como_dict(self) -> dict:
@@ -213,6 +223,19 @@ def regra(faixa: str, turno: str, classe: str, faixa_melhor_momento: str) -> tup
     return 5, Categoria.SEM_ATIVACAO
 
 
+def posicao_na_classe(modelo: final.OccasionScore, score: float, classe: str) -> dict:
+    """Percentil do score entre as pessoas-turno da mesma classe (2017-18)."""
+    pct = float(modelo.percentil_na_classe(np.array([score]), [classe])[0])
+    if not np.isfinite(pct):
+        return {"classe": classe, "percentil_na_classe": None, "topo_10_na_classe": None}
+    pct = round(pct, 1)
+    return {
+        "classe": classe,
+        "percentil_na_classe": pct,
+        "topo_10_na_classe": pct >= TOPO_NA_CLASSE,
+    }
+
+
 def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3) -> Recomendacao:
     linha = _linhas(modelo, [contexto])
     score = float(modelo.prever(linha)[0])
@@ -268,6 +291,7 @@ def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3)
         ),
         rule=n,
         best_moment=melhor,
+        class_position=posicao_na_classe(modelo, score, contexto.classe),
         model_metadata={
             k: modelo.metadata.get(k) for k in ("modelo", "versao", "treinado_em", "features")
         },
