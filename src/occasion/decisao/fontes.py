@@ -1,0 +1,116 @@
+"""Fonte e ano de cada número da resposta, e o que o modelo não sabe.
+
+Cada número que aparece na justificativa do Decision Engine tem aqui a sua
+fonte, o ano do dado e um link. Os números da POF foram calculados pelo
+projeto e estão no relatório de avaliação; o da Worldpanel é de fonte
+secundária (notícia que cita o estudo), marcado como tal.
+"""
+
+from __future__ import annotations
+
+REPO = "https://github.com/gnfes/ambev-occasion-intelligence/blob/develop"
+POF_FTP = "https://ftp.ibge.gov.br/Orcamentos_Familiares"
+POF_2017 = f"{POF_FTP}/Pesquisa_de_Orcamentos_Familiares_2017_2018/Microdados/"
+POF_2008 = f"{POF_FTP}/Pesquisa_de_Orcamentos_Familiares_2008_2009/Microdados/"
+AVALIACAO = f"{REPO}/docs/relatorios/avaliacao_occasion_score.md"
+VIES = f"{REPO}/docs/relatorios/vies_por_grupo.md"
+
+_POF_CALCULO = "POF 2017-18 (IBGE, microdados), cálculo do projeto"
+
+FONTES: dict[str, dict] = {
+    "score": {
+        "numero": "Occasion Score e faixas",
+        "fonte": "Modelo do projeto sobre a POF 2008-09 e 2017-18 (IBGE, microdados), "
+        "com a correção por grupo",
+        "ano": "2008-09 e 2017-18",
+        "url": POF_2017,
+        "detalhe": VIES,
+    },
+    "intervalo": {
+        "numero": "Intervalo de confiança (IC95) e estabilidade da faixa",
+        "fonte": "Bootstrap por setor censitário sobre a POF 2008-09 e 2017-18, cálculo do projeto",
+        "ano": "2008-09 e 2017-18",
+        "url": POF_2008,
+        "detalhe": None,
+    },
+    "media_populacao": {
+        "numero": "Média da população (taxa observada de pizza com refrigerante por "
+        "pessoa-turno, cada dia da semana com peso 1/7)",
+        "fonte": _POF_CALCULO,
+        "ano": "2017-18",
+        "url": POF_2017,
+        "detalhe": AVALIACAO,
+    },
+    "noite_93": {
+        "numero": "93% das ocasiões de pizza com refrigerante são à noite",
+        "fonte": _POF_CALCULO,
+        "ano": "2017-18",
+        "url": POF_2017,
+        "detalhe": AVALIACAO,
+    },
+    "guarana_21": {
+        "numero": "Guaraná em 21% das ocasiões (IC95 15% a 28%), sem diferença entre segmentos",
+        "fonte": _POF_CALCULO,
+        "ano": "2017-18",
+        "url": POF_2017,
+        "detalhe": AVALIACAO,
+    },
+    "classes_86": {
+        "numero": "Classes B a D somam 86% das ocasiões; a classe A, 5%",
+        "fonte": _POF_CALCULO,
+        "ano": "2017-18",
+        "url": POF_2017,
+        "detalhe": AVALIACAO,
+    },
+    "zero_worldpanel": {
+        "numero": "Refrigerante zero foi de 8,8% para 14,4% do valor da categoria",
+        "fonte": "Worldpanel by Numerator, Consumer Insights 3º tri 2025, citado por "
+        "Mercado & Consumo em 16/12/2025 (fonte secundária)",
+        "ano": "2023 a 2025",
+        "url": "https://mercadoeconsumo.com.br/16/12/2025/economia/"
+        "brasileiros-optam-por-habitos-mais-saudaveis-e-buscam-alimentos-com-menos-acucar/",
+        "detalhe": None,
+    },
+}
+
+# Números citados por regra (além do score, do intervalo e da média, sempre presentes).
+POR_REGRA: dict[int, list[str]] = {
+    1: ["noite_93"],
+    2: ["guarana_21"],
+    3: [],
+    4: ["classes_86"],
+    5: [],
+}
+
+LIMITES: list[str] = [
+    (
+        "Os dados são da POF 2017-18, a mais recente com microdados de consumo; o hábito pode ter "
+        "mudado desde então, e o intervalo de confiança não cobre essa mudança."
+    ),
+    (
+        "A POF não tem a data do consumo, só o dia da semana e a hora: clima, feriados e época do "
+        "ano não entram no score (o Trend Radar olha para isso com dados de busca)."
+    ),
+    "Sem preço, promoção ou ponto de venda: o score não mede o efeito de uma oferta.",
+    "A POF não separa delivery: comida pedida em casa conta como consumo em casa.",
+    (
+        "O alvo é pizza com qualquer refrigerante. A fatia do Guaraná (21%) não difere entre "
+        "segmentos, então o score não diz onde o Guaraná perde para outra marca."
+    ),
+    (
+        "É associação, não causa: o score diz onde a ocasião acontece, não que uma ação vai criar "
+        "consumo novo."
+    ),
+    (
+        "O intervalo mede a variação da amostra da POF (bootstrap por setor). Ele não cobre erro de "
+        "especificação do modelo."
+    ),
+]
+
+
+def fontes_da_resposta(regra: int, com_mensagens: bool) -> list[dict]:
+    """Fonte e ano de cada número que aparece numa recomendação."""
+    chaves = ["score", "intervalo", "media_populacao", *POR_REGRA.get(regra, [])]
+    if com_mensagens:
+        chaves.append("zero_worldpanel")
+    return [{"id": k, **FONTES[k]} for k in chaves]

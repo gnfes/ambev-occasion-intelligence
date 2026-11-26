@@ -125,7 +125,7 @@ def test_mensagem_da_regra_3_fala_do_momento_recomendado(modelo):
 def test_regra_5_na_faixa_media_nao_diz_score_baixo(modelo, monkeypatch):
     # Força o melhor momento fora da faixa alta para isolar a regra 5.
     falso = {"dia_semana": 6, "dia": "sábado", "turno": "noite", "occasion_score": 0.5}
-    monkeypatch.setattr(e, "melhor_momento", lambda m, c: {**falso, "classification": "media"})
+    monkeypatch.setattr(e, "melhor_momento", lambda m, c, *_: {**falso, "classification": "media"})
     monkeypatch.setattr(modelo, "faixa", lambda s: np.array(["media"] * len(s)))
     c = e.Contexto("noite", 2, "Sudeste", "capital", "25-29", "homem", 30)
     r = e.decidir(c, modelo)

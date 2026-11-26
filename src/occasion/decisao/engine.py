@@ -28,8 +28,15 @@ score. A classe D está calibrada (previsto ÷ observado 0,95, IC95 0,71 a
 1,35, `vies_por_grupo.md`), mas a ocasião é menos frequente nela, então
 poucos perfis da D chegam à faixa alta nacional.
 
+Incerteza (26/11): com as réplicas do bootstrap (`modelagem.incerteza`), a
+saída traz o IC95 do score e do melhor momento, a fração das réplicas em
+cada faixa, as ocasiões reais do perfil e de cada entrada e os avisos de
+poucos dados. A regra continua decidida pelo score pontual; se a faixa está
+instável, a justificativa diz isso.
+
 As fontes dos números estão no relatório `avaliacao_occasion_score.md` e no
-documento do plano (seção "Decision Engine").
+documento do plano (seção "Decision Engine"); cada resposta lista fonte, ano
+e link de cada número (`decisao.fontes`), e o que o modelo não sabe.
 """
 
 from __future__ import annotations
@@ -40,7 +47,9 @@ from enum import StrEnum
 import numpy as np
 import pandas as pd
 
+from occasion.decisao import fontes
 from occasion.modelagem import final
+from occasion.modelagem import incerteza as inc
 from occasion.modelagem.tabela import FAIXAS_IDADE, TURNOS
 
 DIAS = {
@@ -146,6 +155,9 @@ class Recomendacao:
     rule: int
     best_moment: dict
     class_position: dict = field(default_factory=dict)
+    uncertainty: dict = field(default_factory=dict)
+    sources: list[dict] = field(default_factory=list)
+    limitations: list[str] = field(default_factory=list)
     model_metadata: dict = field(default_factory=dict)
 
     def como_dict(self) -> dict:
@@ -170,21 +182,99 @@ def _linhas(modelo: final.OccasionScore, contextos: list[Contexto]) -> pd.DataFr
     return df
 
 
-def melhor_momento(modelo: final.OccasionScore, contexto: Contexto) -> dict:
+def melhor_momento(
+    modelo: final.OccasionScore, contexto: Contexto, incerteza: inc.Incerteza | None = None
+) -> dict:
     """Dia e turno de maior score para o mesmo perfil (mesmo lugar e público)."""
     grade = [
         Contexto(**{**asdict(contexto), "dia_semana": d, "turno": tr})
         for d in DIAS
         for tr in TURNOS
     ]
-    score = modelo.prever(_linhas(modelo, grade))
+    linhas = _linhas(modelo, grade)
+    score = modelo.prever(linhas)
     i = int(np.argmax(score))
+    ic = incerteza.intervalo(modelo, linhas.iloc[[i]])[0]["ic95"] if incerteza else None
     return {
         "dia_semana": grade[i].dia_semana,
         "dia": DIAS[grade[i].dia_semana],
         "turno": grade[i].turno,
         "occasion_score": round(100 * float(score[i]), 3),
+        "occasion_score_ic95": ic,
         "classification": str(modelo.faixa(score[[i]])[0]),
+    }
+
+
+NOMES_FAIXA = {"alta": "alta", "media": "média", "baixa": "baixa"}
+SEXO_TEXTO = {str(v): k for k, v in SEXOS.items()}
+
+
+def _num(x: float) -> str:
+    """Score com casas suficientes para não virar 0,00 na faixa baixa."""
+    return f"{x:.2f}" if x >= 0.1 else f"{x:.3f}"
+
+
+def _valor_texto(feature: str, valor: str) -> str:
+    if feature == "dia_semana":
+        return DIAS[int(valor)]
+    if feature == "sexo":
+        return SEXO_TEXTO.get(valor, valor)
+    return valor
+
+
+def avaliar_incerteza(
+    modelo: final.OccasionScore,
+    incerteza: inc.Incerteza | None,
+    linha: pd.DataFrame,
+    classe: str,
+    faixa: str,
+) -> dict:
+    """Intervalo, estabilidade da faixa, suporte nos dados e avisos de um contexto."""
+    if incerteza is None:
+        return {
+            "disponivel": False,
+            "occasion_score_ic95": None,
+            "prob_faixa": None,
+            "faixa_estavel": None,
+            "poucos_dados": None,
+            "avisos": ["Intervalo indisponível: as réplicas do bootstrap não foram encontradas."],
+            "suporte": None,
+            "metodo": None,
+        }
+    ic = incerteza.intervalo(modelo, linha)[0]
+    sup = incerteza.suporte_de(linha.iloc[0], classe)
+    avisos, poucos = [], False
+    for e in sup["por_entrada"]:
+        if e["ocasioes"] < inc.MIN_OCASIOES_ENTRADA:
+            poucos = True
+            rotulo = "classe de renda" if e["feature"] == "classe" else final.ROTULOS[e["feature"]]
+            avisos.append(
+                f"Poucos dados para {rotulo} = {_valor_texto(e['feature'], e['valor'])}: "
+                f"{e['ocasioes']} ocasiões nas duas edições."
+            )
+    lo, hi = ic["ic95"]
+    if lo <= 0 or hi / lo > inc.RAZAO_IC_MAX:
+        poucos = True
+        avisos.append(
+            f"Poucos dados para esta combinação: o intervalo vai de {_num(lo)} a {_num(hi)}, e o "
+            f"limite superior passa de {inc.RAZAO_IC_MAX:.0f}× o inferior."
+        )
+    estavel = ic["prob_faixa"][faixa] >= inc.ESTABILIDADE_MIN
+    if not estavel:
+        avisos.append(
+            f"Faixa na fronteira: o score cai na faixa {NOMES_FAIXA[faixa]} em "
+            f"{100 * ic['prob_faixa'][faixa]:.0f}% das reamostragens."
+        )
+    meta = incerteza.metadata
+    return {
+        "disponivel": True,
+        "occasion_score_ic95": ic["ic95"],
+        "prob_faixa": ic["prob_faixa"],
+        "faixa_estavel": estavel,
+        "poucos_dados": poucos,
+        "avisos": avisos,
+        "suporte": sup,
+        "metodo": f"{meta.get('metodo')}; {meta.get('replicas')} réplicas",
     }
 
 
@@ -236,7 +326,12 @@ def posicao_na_classe(modelo: final.OccasionScore, score: float, classe: str) ->
     }
 
 
-def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3) -> Recomendacao:
+def decidir(
+    contexto: Contexto,
+    modelo: final.OccasionScore,
+    n_fatores: int = 3,
+    incerteza: inc.Incerteza | None = None,
+) -> Recomendacao:
     linha = _linhas(modelo, [contexto])
     score = float(modelo.prever(linha)[0])
     faixa = str(modelo.faixa(np.array([score]))[0])
@@ -246,7 +341,8 @@ def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3)
             f["valor"] = DIAS[contexto.dia_semana]
         elif f["feature"] == "sexo":
             f["valor"] = contexto.sexo
-    melhor = melhor_momento(modelo, contexto)
+    melhor = melhor_momento(modelo, contexto, incerteza)
+    incerto = avaliar_incerteza(modelo, incerteza, linha, contexto.classe, faixa)
     n, categoria = regra(faixa, contexto.turno, contexto.classe, melhor["classification"])
 
     canal = None
@@ -258,7 +354,18 @@ def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3)
         canal = "criadores de conteúdo do segmento"
 
     momento = f"{DIAS[contexto.dia_semana]}, {contexto.turno}"
-    base = f"Occasion Score {100 * score:.2f} de 100 (faixa {faixa}) para {momento}. Fatores: {_texto_fatores(fatores)}."
+    ic = incerto["occasion_score_ic95"]
+    texto_ic = f", IC95 {_num(ic[0])} a {_num(ic[1])}" if ic else ""
+    base = (
+        f"Occasion Score {100 * score:.2f} de 100{texto_ic} (faixa {faixa}) para {momento}. "
+        f"Fatores: {_texto_fatores(fatores)}."
+    )
+    if incerto["faixa_estavel"] is False:
+        base += (
+            f" Atenção: a faixa {NOMES_FAIXA[faixa]} aparece em só "
+            f"{100 * incerto['prob_faixa'][faixa]:.0f}% das reamostragens; a regra usa o score "
+            "pontual."
+        )
     motivos = {
         1: "Faixa baixa fora da noite: 93% das ocasiões de pizza com refrigerante são à noite.",
         2: "Faixa alta: a ocasião é provável, e o guaraná aparece em só 21% delas "
@@ -275,6 +382,10 @@ def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3)
             else "Score baixo e sem momento da semana em faixa alta para este perfil."
         ),
     }
+    mensagens = _mensagens(
+        melhor["dia_semana"] if categoria == Categoria.CRIAR_FREQUENCIA else contexto.dia_semana,
+        categoria,
+    )
     return Recomendacao(
         occasion_score=round(100 * score, 3),
         classification=faixa,
@@ -283,15 +394,13 @@ def decidir(contexto: Contexto, modelo: final.OccasionScore, n_fatores: int = 3)
         recommendation_name=NOMES[categoria],
         recommendation_reason=f"Regra {n}. {motivos[n]} {base}",
         recommendation_channel=canal,
-        messages=_mensagens(
-            melhor["dia_semana"]
-            if categoria == Categoria.CRIAR_FREQUENCIA
-            else contexto.dia_semana,
-            categoria,
-        ),
+        messages=mensagens,
         rule=n,
         best_moment=melhor,
         class_position=posicao_na_classe(modelo, score, contexto.classe),
+        uncertainty=incerto,
+        sources=fontes.fontes_da_resposta(n, com_mensagens=bool(mensagens)),
+        limitations=list(fontes.LIMITES),
         model_metadata={
             k: modelo.metadata.get(k) for k in ("modelo", "versao", "treinado_em", "features")
         },
