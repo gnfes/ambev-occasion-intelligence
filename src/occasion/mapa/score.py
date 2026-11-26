@@ -62,11 +62,14 @@ def termos_momento(modelo: final.OccasionScore, perfil: pd.DataFrame) -> pd.Seri
 def pontuar(perfil: pd.DataFrame, modelo: final.OccasionScore | None = None) -> pd.DataFrame:
     """Agrega o score do perfil (uma linha por célula) em uma linha por município."""
     modelo = modelo or final.carregar()
-    base = modelo._logit_bruto(_features(perfil, SABADO, NOITE))
+    x = _features(perfil, SABADO, NOITE)
+    base = modelo._logit_bruto(x)
+    # Correção por grupo (região, tipo de área): depende só do perfil, não do momento.
+    off = modelo.offset(x)
     delta = termos_momento(modelo, perfil).to_numpy()
 
     def prob(logit_bruto: np.ndarray) -> np.ndarray:
-        return 1 / (1 + np.exp(-(modelo.platt_a * logit_bruto + modelo.platt_b)))
+        return 1 / (1 + np.exp(-(modelo.platt_a * logit_bruto + modelo.platt_b + off)))
 
     p_sab = prob(base)
     # Soma dos 28 momentos, em blocos para não montar uma matriz de 28 colunas inteira.
