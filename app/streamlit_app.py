@@ -18,6 +18,7 @@ paginas = st.navigation(
     [
         st.Page("paginas/simulador.py", title="Simulador", icon="🎯", default=True),
         st.Page("paginas/mapa.py", title="Mapa de Oportunidade", icon="🗺️"),
+        st.Page("paginas/radar.py", title="Trend Radar", icon="📡"),
         st.Page("paginas/modelo.py", title="Modelo e validação", icon="📊"),
     ]
 )

@@ -101,6 +101,14 @@ CNPJ da Receita Federal (base de 11/2026), OpenStreetMap (base de 22/11/2026) e 
 IBGE (API de malhas, qualidade mínima, consultada em 23/11/2026). Detalhes no
 [relatório do mapa](relatorios/mapa_oportunidade.md).
 
+Fontes do Trend Radar (não entram na tabela de modelagem nem no Occasion Score; unidade UF ×
+semana): Google Trends, "pizza" e "guaraná", categoria Comida e bebida, últimos 5 anos por UF
+(consultado em 26/11/2026, `data/referencia/radar_trends_semanal.csv`; proxy de interesse,
+nunca consumo nem target); feriados nacionais da BrasilAPI 2016-2027
+(`radar_feriados.csv`); clima diário das 27 capitais no Open-Meteo, reanálise desde 2016 e
+previsão de 16 dias, licença CC BY 4.0 (`radar_clima_diario.csv`). Detalhes no
+[relatório do Radar](relatorios/trend_radar.md).
+
 ## Regras de integração
 
 - **As duas edições não são a mesma observação.** Cada uma gera a sua tabela com o mesmo

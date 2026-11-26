@@ -12,6 +12,13 @@ Termos:
   tem volume (no Brasil, 2016-2026, "guaraná" fica perto de 1 quando "pizza"
   está perto de 50 no mesmo pedido), então não existe série da ocasião.
 
+Os pedidos usam a categoria "Comida e bebida" (cat=71) do Trends. Sem ela, a
+série de "pizza" pega buscas que não têm a ver com comer: em fevereiro de 2025
+a mediana das UFs chegou a 4 vezes o normal por causa de "fantasia de pizza"
+no Carnaval (consulta em alta no Trends, BR, 10/02 a 02/03/2025). Com a
+categoria, esse pico some e ficam os picos de calendário (Ano-Novo, Carnaval,
+Dia da Pizza em 10 de julho).
+
 O Trends devolve uma amostra: dois pedidos iguais podem diferir um pouco. A
 coleta fica versionada em `data/referencia/radar_trends_semanal.csv` e o resto
 do Radar lê esse arquivo; `baixar()` só refaz a coleta.
@@ -30,12 +37,13 @@ from occasion.paths import REFERENCIA_DIR
 ARQUIVO = REFERENCIA_DIR / "radar_trends_semanal.csv"
 TERMOS = ("pizza", "guaraná")
 JANELA = "today 5-y"
+CATEGORIA = 71  # Comida e bebida
 
 
 def _pedido(trends, termo: str, geo: str, tentativas: int = 5) -> pd.DataFrame:
     for tentativa in range(tentativas):
         try:
-            trends.build_payload([termo], geo=geo, timeframe=JANELA)
+            trends.build_payload([termo], cat=CATEGORIA, geo=geo, timeframe=JANELA)
             return trends.interest_over_time()
         except Exception as erro:  # o pytrends levanta TooManyRequestsError e afins
             if tentativa == tentativas - 1:
@@ -86,7 +94,8 @@ def ler(caminho: Path = ARQUIVO) -> pd.DataFrame:
 def main() -> None:
     import os
 
-    print(baixar(verify=os.environ.get("REQUESTS_CA_BUNDLE", True)))
+    verify: str | bool = os.environ.get("REQUESTS_CA_BUNDLE") or True
+    print(baixar(verify=verify))
 
 
 if __name__ == "__main__":

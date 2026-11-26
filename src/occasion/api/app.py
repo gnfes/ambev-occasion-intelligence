@@ -16,6 +16,7 @@ vez, na subida, de `OCCASION_MODEL_PATH` (padrão: o modelo versionado em
 
 from __future__ import annotations
 
+import json
 import math
 import os
 from contextlib import asynccontextmanager
@@ -30,6 +31,8 @@ from occasion.decisao import engine
 from occasion.mapa.oportunidade import ARQUIVO_PONTOS_REFERENCIA
 from occasion.modelagem import final
 from occasion.modelagem.tabela import FAIXAS_IDADE, TURNOS
+from occasion.radar import radar as trend_radar
+from occasion.radar import trends as radar_trends
 
 Turno = Literal[tuple(TURNOS)]
 Regiao = Literal[tuple(engine.REGIOES)]
@@ -133,6 +136,8 @@ def _caminho_modelo() -> Path:
 async def _ciclo(app: FastAPI):
     app.state.modelo = final.carregar(_caminho_modelo())
     app.state.mapa = _ler_mapa(ARQUIVO_PONTOS_REFERENCIA)
+    app.state.radar = _ler_radar(trend_radar.ARQUIVO_ALERTAS)
+    app.state.radar_series = _ler_series(radar_trends.ARQUIVO)
     yield
 
 
@@ -142,6 +147,19 @@ def _ler_mapa(caminho: Path) -> list[dict]:
         return []
     df = pd.read_csv(caminho).sort_values("prioridade")
     return df.astype(object).where(df.notna(), None).to_dict("records")
+
+
+def _ler_radar(caminho: Path) -> dict | None:
+    """Alertas do Trend Radar (None se o arquivo não existir)."""
+    if not caminho.exists():
+        return None
+    return json.loads(caminho.read_text(encoding="utf-8"))
+
+
+def _ler_series(caminho: Path) -> pd.DataFrame | None:
+    if not caminho.exists():
+        return None
+    return pd.read_csv(caminho)
 
 
 app = FastAPI(
@@ -213,3 +231,40 @@ def mapa(request: Request) -> list[dict]:
     if not pontos:
         raise HTTPException(status_code=404, detail="mapa de oportunidade não encontrado")
     return pontos
+
+
+def _radar(request: Request) -> dict:
+    radar = request.app.state.radar
+    if radar is None:
+        raise HTTPException(status_code=404, detail="alertas do trend radar não encontrados")
+    return radar
+
+
+@app.get("/radar")
+def radar(request: Request) -> dict:
+    """Trend Radar: alerta por UF com tendência, fatores, próxima janela e contexto do Mapa.
+
+    Gerado por `occasion.radar.radar` a partir do Google Trends (interesse, não consumo),
+    feriados da BrasilAPI e clima do Open-Meteo. O nível do alerta é uma regra documentada.
+    """
+    return _radar(request)
+
+
+@app.get("/radar/{sigla}")
+def radar_uf(sigla: str, request: Request) -> dict:
+    """Alerta de uma UF e a série semanal de buscas ("pizza" e "guaraná"), semanas fechadas."""
+    sigla = sigla.upper()
+    alerta = next((a for a in _radar(request)["alertas"] if a["sigla"] == sigla), None)
+    if alerta is None:
+        raise HTTPException(status_code=404, detail=f"UF desconhecida: {sigla}")
+    series = request.app.state.radar_series
+    serie: list[dict] = []
+    if series is not None:
+        # Só semanas fechadas: a semana em curso ainda é parcial no Trends.
+        uf = series[(series["sigla"] == sigla) & ~series["parcial"].astype(bool)]
+        serie = (
+            uf.pivot_table(index="semana", columns="termo", values="indice")
+            .reset_index()
+            .to_dict("records")
+        )
+    return {"alerta": alerta, "serie": serie}

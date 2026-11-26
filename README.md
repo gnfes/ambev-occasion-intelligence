@@ -9,9 +9,10 @@ Antarctica. Projeto do case Inteli x Ambev (TAPI).
   POF/IBGE.
 - **Decision Engine:** regras explícitas e documentadas que escolhem uma categoria de ativação
   a partir do score, do contexto e dos fatores, com justificativa.
-- **API (FastAPI) e app (Streamlit):** simulador de contexto, Mapa de Oportunidade e página
-  do modelo. O app chama a API por HTTP.
-- **Extra entregue:** Mapa de Oportunidade com 319 municípios priorizados.
+- **API (FastAPI) e app (Streamlit):** simulador de contexto, Mapa de Oportunidade, Trend
+  Radar e página do modelo. O app chama a API por HTTP.
+- **Extras entregues:** Mapa de Oportunidade com 319 municípios priorizados e Trend Radar com
+  alerta semanal por UF.
 
 > Vídeo de demonstração: _link a incluir_.
 
@@ -24,9 +25,10 @@ Antarctica. Projeto do case Inteli x Ambev (TAPI).
 5. [Resultados](#resultados)
 6. [Decision Engine](#decision-engine)
 7. [Mapa de Oportunidade](#mapa-de-oportunidade)
-8. [Limitações](#limitações)
-9. [Estrutura do repositório](#estrutura-do-repositório)
-10. [English summary](#english-summary)
+8. [Trend Radar](#trend-radar)
+9. [Limitações](#limitações)
+10. [Estrutura do repositório](#estrutura-do-repositório)
+11. [English summary](#english-summary)
 
 ## Como rodar
 
@@ -78,7 +80,13 @@ uv run python -m occasion.modelagem.avaliacao     # importância, faixas, segmen
 
 Os relatórios gerados ficam em `data/processed/`; as cópias usadas nesta entrega estão em
 [`docs/relatorios/`](docs/relatorios/). O Mapa de Oportunidade tem o próprio pipeline (Censo
-2022, CNPJ e OSM; veja a docstring de `occasion.mapa.oportunidade`).
+2022, CNPJ e OSM; veja a docstring de `occasion.mapa.oportunidade`). O Trend Radar lê as
+coletas versionadas em `data/referencia/radar_*` e roda sem baixar nada:
+
+```bash
+uv run python -m occasion.radar.radar     # alertas (data/referencia/radar_alertas.json) e relatório
+# refazer as coletas (opcional): occasion.radar.trends, occasion.radar.clima, occasion.radar.feriados
+```
 
 EDA:
 
@@ -118,6 +126,11 @@ flowchart LR
     CNPJ --> Mapa
     Engine --> API[occasion.api<br/>FastAPI]
     Mapa --> API
+    Trends --> Radar[occasion.radar<br/>Trend Radar]
+    Clima[Open-Meteo] --> Radar
+    Feriados[BrasilAPI] --> Radar
+    Mapa --> Radar
+    Radar --> API
     API -->|HTTP| App[app/<br/>Streamlit]
 ```
 
@@ -232,6 +245,30 @@ municípios); potencial alto e oferta baixa → delivery e criadores (28); poten
 maioria B a D → awareness (164); o resto → monitorar (63). Relatório:
 [`docs/relatorios/mapa_oportunidade.md`](docs/relatorios/mapa_oportunidade.md).
 
+## Trend Radar
+
+Extra do case. Diz se o interesse por pizza está subindo ou caindo em cada UF e o que explica
+o movimento. Buscas medem interesse, não consumo: o Radar não entra no Occasion Score.
+
+- **Unidade:** UF × semana. Sinal: Google Trends, "pizza", categoria Comida e bebida, 5 anos
+  (sem a categoria, "fantasia de pizza" no Carnaval de 2025 quadruplicava a série). AC, AP e
+  RR ficam fora por volume insuficiente (zero em mais de 20% das semanas).
+- **Tendência:** últimas 4 semanas contra as mesmas semanas do ano anterior, com faixa de ruído
+  da própria UF. Em 15/11/2026: SP, SC, MS e AL caindo além da faixa; nenhuma UF subindo.
+- **Fatores:** regressão em painel do desvio semanal contra calendário (feriados nacionais da
+  BrasilAPI, Carnaval, Natal e Ano-Novo, Dia da Pizza, início do mês) e clima da capital
+  (Open-Meteo). Carnaval (+24 pontos %, IC95 21 a 27), Natal e Ano-Novo (+18, IC95 13 a 27)
+  e semana com feriado (+7, IC95 4 a 9) se associam a mais buscas; o Dia da Pizza (+10, IC95
+  −1 a 16) e o clima (temperatura −0,2 ponto por °C acima do normal, IC95 −0,9 a 0,6) não se
+  distinguem de zero.
+- **Validação fora do tempo** (treino até 2024, teste 2025-2026): o modelo não melhora de forma
+  significativa o baseline "igual à média do último ano" (ganho de 0,5 ponto no erro médio, IC95
+  −0,3 a 1,3). O Radar vale como detector de tendência com faixa de ruído e como calendário de
+  janelas, não como previsão semanal.
+- **Alerta:** regra documentada que cruza a tendência com o Mapa de Oportunidade (oportunidade,
+  observar, atenção, estável). Relatório:
+  [`docs/relatorios/trend_radar.md`](docs/relatorios/trend_radar.md).
+
 ## Limitações
 
 - O dado mais recente é a POF 2017-18 (antes da pandemia e da expansão do delivery). A checagem
@@ -255,6 +292,7 @@ src/occasion/ingestao/  download e leitura dos microdados da POF
 src/occasion/modelagem/ tabela, treino, candidatos, modelo final e avaliação
 src/occasion/decisao/   Decision Engine
 src/occasion/mapa/      Mapa de Oportunidade
+src/occasion/radar/     Trend Radar (Trends, clima, feriados, alertas)
 src/occasion/api/       API FastAPI
 tests/                  pytest (os marcados com `dados` usam os microdados)
 ```
@@ -268,7 +306,11 @@ is trained on IBGE's Household Budget Survey (POF) food diaries, with temporal v
 PR-AUC (0.0288 vs 0.0182; top-10% recall 69% vs 58%) and was kept over LightGBM, Random Forest
 and AutoML by a simplicity rule. A rule-based Decision Engine turns score, context and SHAP
 factors into an activation category with its reason. A FastAPI service exposes the contract
-(`/predict`, `/model`, `/mapa`), and a Streamlit app consumes it over HTTP. The optional
-Opportunity Map ranks 319 Brazilian cities by expected occasions and pizzeria supply. Run with
+(`/predict`, `/model`, `/mapa`, `/radar`), and a Streamlit app consumes it over HTTP. The
+optional Opportunity Map ranks 319 Brazilian cities by expected occasions and pizzeria supply.
+The optional Trend Radar tracks weekly Google Trends interest in pizza per state against the
+same weeks last year, relates it to holidays (BrasilAPI) and capital-city weather
+(Open-Meteo), and issues a rule-based alert; out of time it does not beat a last-year-mean
+baseline, so it is used as a trend detector with a noise band, not as a weekly forecast. Run with
 `uv sync && ./app/rodar.sh`. See the [Data Card](docs/data_card.md) for sources, leakage
 strategy, biases and licensing.
