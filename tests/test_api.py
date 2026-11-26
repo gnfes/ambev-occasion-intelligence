@@ -54,9 +54,11 @@ def test_predict_segue_o_contrato_e_o_engine(cliente):
         "model_metadata",
     ):
         assert campo in corpo
-    esperado = engine.decidir(
-        engine.Contexto(**ENTRADA), final.carregar(), incerteza=inc.carregar()
-    ).como_dict()
+    from occasion.api import app as api
+
+    modelo = final.carregar()
+    replicas = api._ler_incerteza(api._caminho_incerteza(), modelo)
+    esperado = engine.decidir(engine.Contexto(**ENTRADA), modelo, incerteza=replicas).como_dict()
     assert corpo == esperado
     assert corpo["recommendation_channel"] == "app de delivery"
     assert len(corpo["top_factors"]) == 3

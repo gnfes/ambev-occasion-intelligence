@@ -75,13 +75,20 @@ faixa = r["classification"]
 
 pc = r.get("class_position") or {}
 inc = r.get("uncertainty") or {}
+
+
+def num(x: float) -> str:
+    """Mesmo formato do engine: 2 algarismos significativos abaixo de 0,1, para não virar 0,00."""
+    return f"{x:.2f}" if x >= 0.1 else f"{x:.2g}"
+
+
 ic = inc.get("occasion_score_ic95")
 prob = inc.get("prob_faixa") or {}
 c1, c2, c3, c4 = st.columns(4)
 c1.metric(
     "Occasion Score",
-    f"{r['occasion_score']:.2f} / 100",
-    f"IC95 {ic[0]:.2f} a {ic[1]:.2f}" if ic else "sem intervalo",
+    f"{num(r['occasion_score'])} / 100",
+    f"IC95 {num(ic[0])} a {num(ic[1])}" if ic else "sem intervalo",
     delta_color="off",
 )
 c2.metric(
@@ -193,7 +200,7 @@ with esq:
     st.info(
         f"Melhor momento da semana para este perfil: **{bm['dia']}, "
         f"{R.TURNOS[bm['turno']].split(' (')[0].lower()}**, score {bm['occasion_score']:.2f}"
-        + (f" (IC95 {bm_ic[0]:.2f} a {bm_ic[1]:.2f})" if bm_ic else "")
+        + (f" (IC95 {num(bm_ic[0])} a {num(bm_ic[1])})" if bm_ic else "")
         + f", faixa {R.FAIXAS[bm['classification']].lower()}."
     )
 

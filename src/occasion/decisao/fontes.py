@@ -11,7 +11,6 @@ from __future__ import annotations
 REPO = "https://github.com/gnfes/ambev-occasion-intelligence/blob/develop"
 POF_FTP = "https://ftp.ibge.gov.br/Orcamentos_Familiares"
 POF_2017 = f"{POF_FTP}/Pesquisa_de_Orcamentos_Familiares_2017_2018/Microdados/"
-POF_2008 = f"{POF_FTP}/Pesquisa_de_Orcamentos_Familiares_2008_2009/Microdados/"
 AVALIACAO = f"{REPO}/docs/relatorios/avaliacao_occasion_score.md"
 VIES = f"{REPO}/docs/relatorios/vies_por_grupo.md"
 
@@ -23,14 +22,14 @@ FONTES: dict[str, dict] = {
         "fonte": "Modelo do projeto sobre a POF 2008-09 e 2017-18 (IBGE, microdados), "
         "com a correção por grupo",
         "ano": "2008-09 e 2017-18",
-        "url": POF_2017,
+        "url": f"{POF_FTP}/",
         "detalhe": VIES,
     },
     "intervalo": {
         "numero": "Intervalo de confiança (IC95) e estabilidade da faixa",
         "fonte": "Bootstrap por setor censitário sobre a POF 2008-09 e 2017-18, cálculo do projeto",
         "ano": "2008-09 e 2017-18",
-        "url": POF_2008,
+        "url": f"{POF_FTP}/",
         "detalhe": None,
     },
     "media_populacao": {

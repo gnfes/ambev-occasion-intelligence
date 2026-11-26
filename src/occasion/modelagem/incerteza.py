@@ -231,7 +231,9 @@ class Incerteza:
             faixa = modelo.faixa(s[:, j])
             saida.append(
                 {
-                    "ic95": [round(100 * float(lo[j]), 3), round(100 * float(hi[j]), 3)],
+                    # 4 algarismos significativos: arredondar casas decimais zeraria o
+                    # limite inferior na faixa baixa e dispararia o aviso de intervalo largo.
+                    "ic95": [_sig(100 * lo[j]), _sig(100 * hi[j])],
                     "prob_faixa": {f: round(float(np.mean(faixa == f)), 3) for f in FAIXAS},
                 }
             )
@@ -271,6 +273,21 @@ class Incerteza:
             metadata=np.array(json.dumps(self.metadata, ensure_ascii=False)),
         )
         return caminho
+
+
+def _sig(x: float) -> float:
+    return float(f"{float(x):.4g}")
+
+
+def compativel(incerteza: Incerteza, modelo: final.OccasionScore) -> bool:
+    """Réplicas da mesma versão e do mesmo espaço de termos do modelo servido."""
+    n_termos = len(modelo.modelo.est[0].get_feature_names_out())
+    return (
+        incerteza.metadata.get("versao_modelo") == modelo.metadata.get("versao")
+        and incerteza.beta.ndim == 2
+        and incerteza.beta.shape[1] == n_termos
+        and incerteza.c.shape == (incerteza.beta.shape[0],)
+    )
 
 
 def carregar(caminho: Path = ARQUIVO) -> Incerteza:

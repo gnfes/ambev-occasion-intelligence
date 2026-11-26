@@ -123,3 +123,22 @@ def test_fontes_por_regra():
     assert {"guarana_21", "zero_worldpanel"} <= ids
     for f in fontes.FONTES.values():
         assert f["ano"] and f["url"].startswith("https://")
+
+
+def test_ic_guarda_algarismos_significativos_em_score_baixo():
+    assert inc._sig(0.000123456) == 0.0001235
+    assert inc._sig(5.4321) == 5.432
+
+
+def test_replicas_de_outro_espaco_de_termos_nao_sao_compativeis(modelo, incerteza):
+    assert inc.compativel(incerteza, modelo)
+    torta = inc.Incerteza(
+        incerteza.beta[:, :-1], incerteza.c, incerteza.suporte, incerteza.metadata
+    )
+    assert not inc.compativel(torta, modelo)
+
+
+def test_melhor_momento_traz_estabilidade_da_faixa(modelo, incerteza):
+    bm = engine.decidir(CONTEXTO, modelo, incerteza=incerteza).como_dict()["best_moment"]
+    assert sum(bm["prob_faixa"].values()) == pytest.approx(1.0)
+    assert bm["faixa_estavel"] == (bm["prob_faixa"][bm["classification"]] >= inc.ESTABILIDADE_MIN)

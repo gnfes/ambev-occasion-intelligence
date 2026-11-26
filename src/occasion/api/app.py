@@ -114,6 +114,10 @@ class MelhorMomento(BaseModel):
         description="IC95 do score (bootstrap por setor); vazio sem as réplicas"
     )
     classification: Literal["alta", "media", "baixa"]
+    prob_faixa: dict[Literal["alta", "media", "baixa"], float] | None = Field(
+        description="fração das réplicas em cada faixa no melhor momento"
+    )
+    faixa_estavel: bool | None
 
 
 class SuporteValor(BaseModel):
@@ -215,13 +219,11 @@ def _caminho_incerteza() -> Path:
 
 
 def _ler_incerteza(caminho: Path, modelo: final.OccasionScore) -> inc.Incerteza | None:
-    """Réplicas do bootstrap (None se o arquivo não existir ou for de outra versão do modelo)."""
+    """Réplicas do bootstrap (None se o arquivo não existir ou não casar com o modelo servido)."""
     if not caminho.exists():
         return None
     incerteza = inc.carregar(caminho)
-    if incerteza.metadata.get("versao_modelo") != modelo.metadata.get("versao"):
-        return None
-    return incerteza
+    return incerteza if inc.compativel(incerteza, modelo) else None
 
 
 def _ler_mapa(caminho: Path) -> list[dict]:

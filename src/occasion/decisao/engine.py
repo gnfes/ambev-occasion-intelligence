@@ -194,14 +194,17 @@ def melhor_momento(
     linhas = _linhas(modelo, grade)
     score = modelo.prever(linhas)
     i = int(np.argmax(score))
-    ic = incerteza.intervalo(modelo, linhas.iloc[[i]])[0]["ic95"] if incerteza else None
+    faixa = str(modelo.faixa(score[[i]])[0])
+    ic = incerteza.intervalo(modelo, linhas.iloc[[i]])[0] if incerteza else None
     return {
         "dia_semana": grade[i].dia_semana,
         "dia": DIAS[grade[i].dia_semana],
         "turno": grade[i].turno,
         "occasion_score": round(100 * float(score[i]), 3),
-        "occasion_score_ic95": ic,
-        "classification": str(modelo.faixa(score[[i]])[0]),
+        "occasion_score_ic95": ic["ic95"] if ic else None,
+        "classification": faixa,
+        "prob_faixa": ic["prob_faixa"] if ic else None,
+        "faixa_estavel": ic["prob_faixa"][faixa] >= inc.ESTABILIDADE_MIN if ic else None,
     }
 
 
@@ -211,7 +214,7 @@ SEXO_TEXTO = {str(v): k for k, v in SEXOS.items()}
 
 def _num(x: float) -> str:
     """Score com casas suficientes para não virar 0,00 na faixa baixa."""
-    return f"{x:.2f}" if x >= 0.1 else f"{x:.3f}"
+    return f"{x:.2f}" if x >= 0.1 else f"{x:.2g}"
 
 
 def _valor_texto(feature: str, valor: str) -> str:
@@ -364,6 +367,12 @@ def decidir(
         base += (
             f" Atenção: a faixa {NOMES_FAIXA[faixa]} aparece em só "
             f"{100 * incerto['prob_faixa'][faixa]:.0f}% das reamostragens; a regra usa o score "
+            "pontual."
+        )
+    if n == 3 and melhor["faixa_estavel"] is False:
+        base += (
+            f" Atenção: o melhor momento fica na faixa alta em só "
+            f"{100 * melhor['prob_faixa']['alta']:.0f}% das reamostragens; a regra 3 usa o score "
             "pontual."
         )
     motivos = {
