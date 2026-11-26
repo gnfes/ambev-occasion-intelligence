@@ -22,6 +22,12 @@ na população de referência), no logit. As colunas de uma mesma feature
 por `a`, então as contribuições também são multiplicadas por `a` e somam,
 junto com o valor base, o logit do Occasion Score.
 
+Correção por grupo (v1.1.0, `correcao.py`): depois do Platt, o logit recebe
+um offset por grupo (região, tipo de área) cujo previsto ÷ observado fora
+da amostra em 2017-18 tem IC95 que exclui 1, mais um termo global. Os
+offsets são estimados nas mesmas previsões fora da amostra do Platt. Na
+explicação, o offset do grupo entra na contribuição da feature dele.
+
     uv run python -m occasion.modelagem.final
 """
 
@@ -38,11 +44,12 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
+from occasion.modelagem import correcao
 from occasion.modelagem import treino as t
-from occasion.modelagem.experimentos import FEATURES_FINAIS
+from occasion.modelagem.experimentos import FEATURES_FINAIS, classe
 from occasion.paths import RAIZ
 
-VERSAO = "1.0.0"
+VERSAO = "1.1.0"
 MODELOS_DIR = RAIZ / "models"
 ARQUIVO_MODELO = MODELOS_DIR / f"occasion_score_v{VERSAO}.joblib"
 
@@ -107,6 +114,12 @@ class OccasionScore:
     # 2017-18 (a entrada do app é em SM; o modelo usa o percentil).
     renda_sm_ref: np.ndarray = field(default_factory=lambda: np.zeros(0))
     renda_pct_ref: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    # Correção por grupo no logit calibrado: {"global": c, coluna: {valor: offset}}.
+    offsets: dict = field(default_factory=dict)
+    # Média ponderada do offset de cada coluna em 2017-18 (referência da explicação).
+    media_offsets: dict = field(default_factory=dict)
+    # Score de 2017-18 por classe de renda, em percentis 0..100 (posição na classe).
+    score_classe_ref: dict = field(default_factory=dict)
 
     # ------------------------------------------------------------ previsão
 
@@ -119,10 +132,44 @@ class OccasionScore:
         lr = self.modelo.est[-1]
         return self._termos(df) @ lr.coef_[0] + lr.intercept_[0]
 
+    def offset(self, df: pd.DataFrame) -> np.ndarray:
+        """Correção por grupo de cada linha, no logit (zero sem correção)."""
+        return correcao.aplicar(self.offsets, df) if self.offsets else np.zeros(len(df))
+
+    def logit(self, df: pd.DataFrame) -> np.ndarray:
+        """Logit do Occasion Score: Platt sobre o logit bruto + correção por grupo."""
+        return self.platt_a * self._logit_bruto(df) + self.platt_b + self.offset(df)
+
     def prever(self, df: pd.DataFrame) -> np.ndarray:
         """Occasion Score em probabilidade (0 a 1)."""
-        z = self.platt_a * self._logit_bruto(df) + self.platt_b
-        return 1 / (1 + np.exp(-z))
+        return 1 / (1 + np.exp(-self.logit(df)))
+
+    def vetor_offsets(self) -> np.ndarray:
+        """Offsets alinhados às colunas transformadas do modelo (zero nas sem correção).
+
+        `logit = platt_a × (termos @ coef + intercepto) + platt_b + global + termos @ vetor`,
+        porque as colunas de região e tipo de área são one-hot.
+        """
+        nomes = self.modelo.est[0].get_feature_names_out()
+        vetor = np.zeros(len(nomes))
+        for i, n in enumerate(nomes):
+            bruto = n.split("__", 1)[1]
+            for col, valores in self.offsets.items():
+                if col == "global":
+                    continue
+                for val, off in valores.items():
+                    if bruto == f"{col}_{val}":
+                        vetor[i] = off
+        return vetor
+
+    def percentil_na_classe(self, score: np.ndarray, classes: list[str]) -> np.ndarray:
+        """Posição (0 a 100) do score entre as pessoas-turno da mesma classe em 2017-18."""
+        saida = np.full(len(classes), np.nan)
+        for i, (s, c) in enumerate(zip(np.asarray(score, dtype=float), classes, strict=True)):
+            ref = self.score_classe_ref.get(c)
+            if ref is not None and len(ref):
+                saida[i] = np.interp(s, ref, np.linspace(0, 100, len(ref)))
+        return saida
 
     def renda_pct(self, renda_sm: float | np.ndarray) -> np.ndarray:
         """Percentil de renda (0 a 100) da renda mensal do domicílio em salários mínimos."""
@@ -148,18 +195,25 @@ class OccasionScore:
         """Logit calibrado da linha média de referência (onde as contribuições somam zero)."""
         lr = self.modelo.est[-1]
         bruto = float(self.media_termos @ lr.coef_[0] + lr.intercept_[0])
-        return self.platt_a * bruto + self.platt_b
+        extra = float(self.offsets.get("global", 0.0)) + sum(self.media_offsets.values())
+        return self.platt_a * bruto + self.platt_b + extra
 
     def contribuicoes(self, df: pd.DataFrame) -> pd.DataFrame:
         """Contribuição de cada feature no logit calibrado (SHAP linear), uma linha por previsão."""
         coef = self.modelo.est[-1].coef_[0]
         termos = (self._termos(df) - self.media_termos) * coef * self.platt_a
-        return (
+        contrib = (
             pd.DataFrame(termos, columns=self._grupos(), index=df.index)
             .T.groupby(level=0)
             .sum()
             .T[self.features]
         )
+        for col, valores in self.offsets.items():
+            if col == "global":
+                continue
+            off = df[col].astype(str).map(valores).fillna(0.0).to_numpy(dtype=float)
+            contrib[col] += off - self.media_offsets.get(col, 0.0)
+        return contrib
 
     def fatores(self, df: pd.DataFrame, n: int = 3) -> list[list[dict]]:
         """Os `n` fatores de maior efeito de cada previsão, com direção e razão de chances."""
@@ -210,39 +264,76 @@ def _platt(logit_bruto: np.ndarray, y: np.ndarray, w: np.ndarray) -> tuple[float
     return float(cal.coef_[0, 0]), float(cal.intercept_[0])
 
 
+def logit_oof(
+    antiga: pd.DataFrame, recente: pd.DataFrame, features: list[str] = FEATURES_FINAIS
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, pd.DataFrame]:
+    """Logit bruto de 2017-18 fora da amostra (metades de setores).
+
+    Para cada metade, a logística é treinada em 2008-09 + a outra metade e
+    prevê esta. Devolve (2017-18, logit fora da amostra, metade, as duas edições).
+    """
+    tudo = _juntar(antiga, recente)
+    eh_recente = (tudo["edicao"] == recente["edicao"].iloc[0]).to_numpy()
+    rec = tudo[eh_recente].reset_index(drop=True)
+    lado = t.metades_setor(rec)
+    saida = np.empty(len(rec))
+    for k in (0, 1):
+        m = _ajustar(_juntar(tudo[~eh_recente], rec[lado != k]), features)
+        saida[lado == k] = t._logit(m.predict(rec[lado == k]))
+    return rec, saida, lado, tudo
+
+
+def _ref_por_classe(score: np.ndarray, w: np.ndarray, classes: pd.Series) -> dict:
+    """Percentis 0..100 (ponderados) do score dentro de cada classe."""
+    ref = {}
+    for c in classes.dropna().unique():
+        m = (classes == c).fillna(False).to_numpy(dtype=bool)
+        ordem = np.argsort(score[m])
+        s, ww = score[m][ordem], w[m][ordem]
+        acum = (np.cumsum(ww) - ww / 2) / ww.sum()
+        ref[str(c)] = np.interp(np.linspace(0, 1, 101), acum, s)
+    return ref
+
+
 def treinar(
     antiga: pd.DataFrame,
     recente: pd.DataFrame,
     features: list[str] = FEATURES_FINAIS,
     metricas_validacao: dict | None = None,
+    corrigir: bool = True,
 ) -> OccasionScore:
     """Treina o modelo da aplicação a partir das duas edições já preparadas (`t.preparar`)."""
     if "renda_sm" not in recente or recente["renda_sm"].isna().all():
         raise ValueError("a edição recente precisa de `renda_sm` para converter a renda do app")
-    tudo = _juntar(antiga, recente)
-    eh_recente = (tudo["edicao"] == recente["edicao"].iloc[0]).to_numpy()
-    rec = tudo[eh_recente].reset_index(drop=True)
-    lado = t.metades_setor(rec)
-
-    # 1. Previsões de 2017-18 fora da amostra, para o Platt.
-    logit_oof = np.empty(len(rec))
-    for k in (0, 1):
-        treino = _juntar(tudo[~eh_recente], rec[lado != k])
-        m = _ajustar(treino, features)
-        p = m.predict(rec[lado == k])
-        logit_oof[lado == k] = t._logit(p)
+    # 1. Previsões de 2017-18 fora da amostra, para o Platt e a correção por grupo.
+    rec, logit_fora, lado, tudo = logit_oof(antiga, recente, features)
     y = rec[t.ALVO].astype(int).to_numpy()
     w = rec["peso_metrica"].to_numpy()
-    a, b = _platt(logit_oof, y, w)
+    a, b = _platt(logit_fora, y, w)
+    z = a * logit_fora + b
+    selecionados = (
+        correcao.selecionar_grupos(rec, rec["id_setor"], y, 1 / (1 + np.exp(-z)), w)
+        if corrigir
+        else []
+    )
+    candidatos = list(selecionados)
+    selecionados = correcao.validar_grupos(logit_fora, y, w, rec, lado, selecionados)
+    offsets = correcao.estimar_offsets(z, y, w, rec, selecionados) if selecionados else {}
 
     # 2. Modelo final nas duas edições inteiras.
     modelo = _ajustar(tudo, features)
-    os_ = OccasionScore(features, modelo, a, b, np.zeros(1), 0.0, 0.0)
+    os_ = OccasionScore(features, modelo, a, b, np.zeros(1), 0.0, 0.0, offsets=offsets)
 
     # Referência da explicação e cortes das faixas: população de 2017-18.
     termos = os_._termos(rec)
     os_.media_termos = np.average(termos, axis=0, weights=w)
+    os_.media_offsets = {
+        col: float(np.average(rec[col].astype(str).map(vals).fillna(0.0), weights=w))
+        for col, vals in offsets.items()
+        if col != "global"
+    }
     score = os_.prever(rec)
+    os_.score_classe_ref = _ref_por_classe(score, w, classe(rec["renda_sm"]).astype("string"))
     os_.corte_alta = _corte_topo(score, w, TOPO_ALTA)
     os_.corte_media = _corte_topo(score, w, TOPO_MEDIA)
     ref = rec[["renda_sm", "renda_pct"]].dropna().drop_duplicates("renda_sm")
@@ -254,7 +345,8 @@ def treinar(
         "modelo": "occasion_score",
         "versao": VERSAO,
         "treinado_em": date.today().isoformat(),
-        "algoritmo": "regressão logística (one-hot + splines na renda) + calibração de Platt",
+        "algoritmo": "regressão logística (one-hot + splines na renda) + calibração de Platt"
+        + (" + correção por grupo no logit" if offsets else ""),
         "features": features,
         "treino": "POF 2008-09 + POF 2017-18 (pessoa × dia de registro × turno)",
         "calibracao": "Platt em previsões fora da amostra de 2017-18 (metades de setores)",
@@ -263,6 +355,15 @@ def treinar(
         "linhas_treino": len(tudo),
         "positivos_treino": int(tudo[t.ALVO].sum()),
         "platt": {"a": a, "b": b},
+        "correcao_grupos": {
+            "regra": "grupo de região ou tipo de área com previsto ÷ observado fora da amostra "
+            f"em 2017-18 cujo IC95 (bootstrap por setor) exclui 1 e com ≥ {correcao.MIN_POSITIVOS} "
+            "ocasiões, mantido só se a correção estimada numa metade dos setores melhora a "
+            "calibração do grupo na outra; offset no logit calibrado estimado nas mesmas previsões",
+            "candidatos_significativos": [list(g) for g in candidatos],
+            "grupos": [list(g) for g in selecionados],
+            "offsets": offsets,
+        },
         "faixas": {
             "alta": f">= {os_.corte_alta:.5f} (10% maiores da população de 2017-18)",
             "media": f">= {os_.corte_media:.5f} (10% a 30%)",
@@ -271,7 +372,15 @@ def treinar(
             "corte_media": os_.corte_media,
         },
         "taxa_media_2017_18": float(np.average(y, weights=w)),
-        "validacao_temporal": metricas_validacao or {},
+        "validacao_temporal": (
+            {
+                **metricas_validacao,
+                "nota": "logística + Platt, sem a correção por grupo (treino só em 2008-09); "
+                "a correção é medida em docs/relatorios/vies_por_grupo.md",
+            }
+            if metricas_validacao
+            else {}
+        ),
     }
     return os_
 

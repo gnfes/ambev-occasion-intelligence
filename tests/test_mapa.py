@@ -162,18 +162,35 @@ def test_ligacao_receita_ibge_por_nome_e_uf():
     assert c.attrs["sem_ibge"].empty
 
 
-def test_correcao_regional_so_no_nordeste_e_centro_oeste():
-    mun = pd.DataFrame(
+def test_pontuar_aplica_a_correcao_por_grupo_do_modelo():
+    from dataclasses import replace
+
+    from occasion.mapa import score
+    from occasion.modelagem import final
+
+    modelo = final.carregar()
+    if not modelo.offsets:
+        pytest.skip("modelo sem correção por grupo")
+    perfil = pd.DataFrame(
         {
-            "regiao": ["Nordeste", "Centro-Oeste", "Sul"],
-            "ocasioes_semana": [68.0, 142.0, 50.0],
-            "publico_20_44": [1000.0, 1000.0, 1000.0],
+            "CD_MUN": [1, 2],
+            "municipio": ["A", "B"],
+            "uf": [23, 43],
+            "regiao": ["Nordeste", "Sul"],
+            "tipo_area": ["interior_urbano", "interior_urbano"],
+            "faixa_idade": ["25-29", "25-29"],
+            "sexo": ["mulher", "mulher"],
+            "renda_pct": [50.0, 50.0],
+            "renda_mensal": [3000.0, 3000.0],
+            "pessoas": [1000.0, 1000.0],
         }
     )
-    out = oportunidade.corrigir_regiao(mun)
-    fatores = oportunidade.CORRECAO_REGIAO
-    assert out["ocasioes_semana"].tolist() == pytest.approx(
-        [68 / fatores["Nordeste"], 142 / fatores["Centro-Oeste"], 50.0]
-    )
-    assert out["ocasioes_por_mil"].tolist() == pytest.approx(out["ocasioes_semana"].tolist())
-    assert out["ocasioes_semana_sem_correcao"].tolist() == [68.0, 142.0, 50.0]
+    com = score.pontuar(perfil, modelo).set_index("CD_MUN")["ocasioes_semana"]
+    sem = score.pontuar(perfil, replace(modelo, offsets={}, media_offsets={})).set_index("CD_MUN")[
+        "ocasioes_semana"
+    ]
+    g = modelo.offsets["global"]
+    ne = modelo.offsets.get("regiao", {}).get("Nordeste", 0.0)
+    # Probabilidades pequenas: a correção no logit vira quase um fator nas ocasiões.
+    assert com[1] / sem[1] == pytest.approx(np.exp(g + ne), rel=0.05)
+    assert com[2] / sem[2] == pytest.approx(np.exp(g), rel=0.05)

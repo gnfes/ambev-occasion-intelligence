@@ -1,6 +1,6 @@
 # Data Card: tabela de modelagem do Occasion Score
 
-Versão da tabela: a do modelo `occasion_score` 1.0.0 (treinado em 21/11/2026). Gerada por
+Versão da tabela: a do modelo `occasion_score` 1.1.0 (treinado em 26/11/2026; mesma tabela da 1.0.0). Gerada por
 `occasion.ingestao` e `occasion.modelagem.tabela` a partir dos microdados oficiais do IBGE.
 A análise exploratória está em [`notebooks/eda_occasion_score.ipynb`](../notebooks/eda_occasion_score.ipynb).
 
@@ -169,10 +169,13 @@ previsão de 16 dias, licença CC BY 4.0 (`radar_clima_diario.csv`). Detalhes no
   ocasiões; sábado, 69) têm intervalos largos. O relatório de avaliação marca os instáveis.
 - **Diário declarado.** Esquecimento e subdeclaração de itens são possíveis, e o viés de
   memória não é mensurável com estes dados.
-- **Calibração por região.** O modelo final, medido fora da amostra em 2017-18 (`vies.py`),
-  subestima o Nordeste (previsto/observado 0,68, IC95 0,54 a 0,85) e superestima o
-  Centro-Oeste (1,42, IC95 1,03 a 2,16); o Mapa de Oportunidade corrige essas duas regiões. Na
-  validação temporal (treino só em 2008-09) as razões são 0,63 e 1,48.
+- **Calibração por grupo.** O modelo final, medido fora da amostra em 2017-18
+  (`modelagem/vies_grupos.py`), subestima o Nordeste (previsto/observado 0,68, IC95 0,54 a
+  0,85) e superestima o Centro-Oeste (1,42, IC95 1,03 a 2,16) e a área rural (1,63, IC95 1,07 a
+  2,69). Desde a versão 1.1.0 o score servido corrige esses três grupos com um offset no logit
+  (razões 0,99, 1,01 e 1,04 em metades de setores que a correção não viu). Classe de renda não
+  é corrigida: todas têm IC95 que inclui 1. Relatório:
+  [viés por grupo](relatorios/vies_por_grupo.md).
 - **Google Trends** mede interesse de busca, não consumo, e nunca é tratado como target.
 
 ## Licença e LGPD

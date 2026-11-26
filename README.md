@@ -119,7 +119,7 @@ flowchart LR
     Ingestao --> Tabela[occasion.modelagem.tabela<br/>pessoa × dia × turno]
     Trends -.ablação.-> Tabela
     Tabela --> Modelo[occasion.modelagem<br/>baseline, candidatos,<br/>validação temporal]
-    Modelo --> Final[(models/<br/>occasion_score_v1.0.0)]
+    Modelo --> Final[(models/<br/>occasion_score_v1.1.0)]
     Final --> Engine[occasion.decisao.engine<br/>regras de ativação]
     Final --> Mapa[occasion.mapa<br/>Mapa de Oportunidade]
     Censo --> Mapa
@@ -213,8 +213,16 @@ Validação temporal (treino 2008-09, teste 2017-18, pesos da POF com cada dia d
   (10% a 30%), 24%; **baixa** (70% da população), 7%.
 - Segmentos: o modelo ganha do baseline em todos os dias da semana e regiões. Na validação
   temporal, subestima o Nordeste (previsto/observado 0,63) e superestima o Centro-Oeste (1,48)
-  e a classe A (1,92). No modelo final, medido fora da amostra, o viés regional significativo
-  fica no Nordeste (0,68) e no Centro-Oeste (1,42), corrigidos no Mapa de Oportunidade.
+  e a classe A (1,92).
+- Correção por grupo (modelo v1.1.0): no modelo final, medido fora da amostra em 2017-18, o
+  score errava o nível do Nordeste (previsto/observado 0,68, IC95 0,54 a 0,85), do Centro-Oeste
+  (1,42) e da área rural (1,63). O score servido (API, simulador e mapa) soma um offset no logit
+  desses grupos; medida em metades de setores que a correção não viu, a razão vai para 0,99,
+  1,01 e 1,04 (melhora nas 20 divisões de setores testadas), o recall nos 10% maiores sobe de
+  70,1% para 71,7% e a PR-AUC empata (0,0312 contra 0,0313). A classe D não é corrigida porque está calibrada
+  (0,95, IC95 0,71 a 1,35): ela concentra ocasiões perdidas pela régua nacional porque a
+  ocasião é menos frequente nela, então a API mostra também a posição do score dentro da
+  classe. Relatório: [viés por grupo](docs/relatorios/vies_por_grupo.md).
 
 Relatórios completos: [experimentos](docs/relatorios/experimentos_occasion_score.md),
 [candidatos](docs/relatorios/candidatos_occasion_score.md),
@@ -233,6 +241,9 @@ decisão estruturada, e o sistema não afirma que uma ação vende mais que outr
 | 3 | o mesmo perfil chega à faixa alta no seu melhor dia e turno | criar frequência: criadores online, depois pizzaria do bairro | há afinidade no perfil; que a ação crie consumo novo é hipótese |
 | 4 | faixa média e classe B a D | awareness e associação com criadores do segmento | B a D somam 86% das ocasiões; a classe A, 5% |
 | 5 | resto | sem ativação (monitorar) | |
+
+A saída traz também `class_position`: a posição do score entre as pessoas da mesma classe de
+renda (2017-18). Não muda a regra; serve para mirar a expansão B a D sem inflar o score.
 
 Código: [`src/occasion/decisao/engine.py`](src/occasion/decisao/engine.py).
 
@@ -275,7 +286,9 @@ o movimento. Buscas medem interesse, não consumo: o Radar não entra no Occasio
   com Google Trends e divulgações do iFood de 2024 a 2026 confirmou o padrão de noite e fim de
   semana, mas o nível da taxa pode ter mudado. A POF 2024-25 ainda não tem microdados.
 - A POF não separa delivery nem registra data; canal, clima e feriados não entram no modelo.
-- 811 ocasiões em 2017-18: segmentos finos (classe A, sábado) têm intervalos largos.
+- 811 ocasiões em 2017-18: segmentos finos (classe A, sábado) têm intervalos largos. A correção
+  por grupo foi escolhida nos dados inteiros; rodada em só metade dos setores, a regra de
+  significância escolhe grupos diferentes, então os offsets são uma melhora medida, não exata.
 - O modelo é aditivo: o melhor dia e turno é o mesmo (sábado à noite) para todo perfil.
 - Mensagens e a regra 3 trazem hipóteses marcadas como tais; nenhuma recomendação afirma
   efeito causal.

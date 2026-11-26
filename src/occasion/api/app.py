@@ -112,6 +112,16 @@ class MelhorMomento(BaseModel):
     classification: Literal["alta", "media", "baixa"]
 
 
+class PosicaoClasse(BaseModel):
+    classe: Literal["A", "B", "C", "D", "E"]
+    percentil_na_classe: float | None = Field(
+        description="posição do score entre as pessoas-turno da mesma classe em 2017-18 (0 a 100)"
+    )
+    topo_10_na_classe: bool | None = Field(
+        description="score entre os 10% maiores da própria classe (mesmo corte da faixa alta)"
+    )
+
+
 class Recomendacao(BaseModel):
     occasion_score: float = Field(description="probabilidade calibrada da ocasião × 100 (0 a 100)")
     classification: Literal["alta", "media", "baixa"] = Field(
@@ -125,6 +135,9 @@ class Recomendacao(BaseModel):
     messages: list[str]
     rule: int = Field(ge=1, le=5, description="regra do Decision Engine que decidiu")
     best_moment: MelhorMomento = Field(description="dia e turno de maior score para o mesmo perfil")
+    class_position: PosicaoClasse = Field(
+        description="posição dentro da classe de renda; não muda a regra, serve à expansão B a D"
+    )
     model_metadata: dict
 
 

@@ -12,8 +12,8 @@ Queda da PR-AUC em 2017-18 ao embaralhar a feature (20 permutações), ao lado d
 | dia_semana | 0.0083 | 28.7753 | 0.0014 | 0.4181 |
 | renda_pct | 0.0055 | 19.1335 | 0.0018 | 0.4218 |
 | faixa_idade | 0.0037 | 12.7614 | 0.0024 | 0.3890 |
-| regiao | 0.0015 | 5.0364 | 0.0018 | 0.1609 |
-| tipo_area | 0.0001 | 0.4533 | 0.0052 | 0.3062 |
+| regiao | 0.0015 | 5.0364 | 0.0018 | 0.1726 |
+| tipo_area | 0.0001 | 0.4533 | 0.0052 | 0.3878 |
 | sexo | -0.0003 | -0.8981 | 0.0001 | 0.0544 |
 
 ## Faixas do score (alta = 10% maiores do peso, média = 10% a 30%)

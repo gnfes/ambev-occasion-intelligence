@@ -24,9 +24,12 @@ Regras (a primeira que vale decide):
   acima da mediana do universo. A contagem é um piso (só pizzarias com
   "pizz" no nome fantasia, ver `cnpj.py`), por isso a régua é a mediana e
   não um número absoluto.
-- Potencial com correção regional: as ocasiões esperadas do Nordeste e do
-  Centro-Oeste são divididas pelo previsto ÷ observado do modelo final na
-  região (`vies.py`), as únicas regiões em que o IC95 exclui 1.
+- Potencial com a correção por grupo do próprio modelo (v1.1.0,
+  `modelagem/correcao.py`): Nordeste, Centro-Oeste e rural, os grupos com
+  viés significativo fora da amostra que a correção reduz na metade dos
+  setores que não viu (`modelagem/vies_grupos.py`). Até a v1.0.0 a correção
+  regional existia só aqui; agora o mapa, a API e o simulador usam o mesmo
+  score.
 - Ordem dentro de cada categoria: volume de ocasiões esperadas por semana.
   Volume, e não taxa, porque a taxa põe no topo as capitais de renda alta
   (classe A), e as classes B a D somam 86% das ocasiões (POF 2017-18).
@@ -37,6 +40,7 @@ Regras (a primeira que vale decide):
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from enum import StrEnum
 from pathlib import Path
 
@@ -44,6 +48,7 @@ import numpy as np
 import pandas as pd
 
 from occasion.mapa import censo, cnpj, osm, score
+from occasion.modelagem import final
 from occasion.paths import PROCESSED_DIR, REFERENCIA_DIR
 
 POPULACAO_MINIMA = 100_000
@@ -51,13 +56,8 @@ FRACAO_MEDIO = 0.5  # potencial médio a partir de metade da taxa nacional
 MAIORIA_BD = 50.0  # % do público nas classes B a D
 # Município "perto do corte": taxa a menos de 15% de um limite de potencial.
 MARGEM_CORTE = 0.15
-# Previsto ÷ observado do modelo final em 2017-18, fora da amostra, com IC95 por
-# bootstrap de setores (`vies.py`, data/processed/vies_occasion_score.csv).
-# Corrigido no ranking: só as regiões cujo IC95 exclui 1.
-CORRECAO_REGIAO = {"Nordeste": 0.675, "Centro-Oeste": 1.421}
-# Por tipo de área o IC95 inclui 1 nos três tipos urbanos: só sensibilidade.
-PREVISTO_SOBRE_OBS = {"capital": 1.23, "resto_rm": 0.791, "interior_urbano": 0.893, "rural": 1.626}
-ARQUIVO_VIES = PROCESSED_DIR / "vies_occasion_score.csv"
+# Previsto ÷ observado por grupo, antes e depois da correção (`modelagem/vies_grupos.py`).
+ARQUIVO_VIES = PROCESSED_DIR / "vies_por_grupo.csv"
 ARQUIVO_RANKING = PROCESSED_DIR / "mapa_oportunidade.csv"
 ARQUIVO_RELATORIO = PROCESSED_DIR / "mapa_oportunidade.md"
 ARQUIVO_PONTOS = PROCESSED_DIR / "mapa_oportunidade.json"
@@ -156,27 +156,16 @@ def priorizar(municipios: pd.DataFrame, taxa_nacional: float) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-def corrigir_regiao(mun: pd.DataFrame) -> pd.DataFrame:
-    """Divide o esperado pelo previsto ÷ observado da região (só NE e CO).
-
-    Vale para as ocasiões da semana e para o score de sábado à noite;
-    `pct_faixa_alta` (fatia do público na faixa alta do score) fica sem
-    correção e é a única coluna do score nessa situação.
-    """
-    fator = mun["regiao"].map(CORRECAO_REGIAO).fillna(1.0)
-    mun = mun.copy()
-    mun["ocasioes_semana_sem_correcao"] = mun["ocasioes_semana"]
-    mun["ocasioes_semana"] = mun["ocasioes_semana"] / fator
-    if "score_sabado_noite" in mun:
-        mun["score_sabado_noite"] = mun["score_sabado_noite"] / fator
-    mun["ocasioes_por_mil"] = 1000 * mun["ocasioes_semana"] / mun["publico_20_44"]
-    return mun
-
-
 def montar() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Junta perfil, score, CNPJ e OSM. Devolve (todos os municípios, universo priorizado, meta)."""
     perfil = pd.read_parquet(censo.ARQUIVO_PERFIL)
-    mun = corrigir_regiao(score.pontuar(perfil))
+    modelo = final.carregar()
+    mun = score.pontuar(perfil, modelo)
+    # Mesmo modelo sem a correção por grupo, só para a checagem do relatório.
+    sem = score.pontuar(perfil, replace(modelo, offsets={}, media_offsets={}))
+    mun["ocasioes_semana_sem_correcao"] = mun["CD_MUN"].map(
+        sem.set_index("CD_MUN")["ocasioes_semana"]
+    )
     pop = censo.populacao()
     mun = mun.merge(pop[["CD_MUN", "populacao", "renda_media_responsavel"]], on="CD_MUN")
     pontos, data_osm = osm.carregar()
@@ -200,6 +189,8 @@ def montar() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
         "mediana_oferta": ranking.attrs["mediana_oferta"],
         "mes_cnpj": str(rf["mes_receita"].iloc[0]),
         "pizzarias_cnpj_total": int(rf["pizzarias_cnpj"].sum()),
+        "versao_modelo": modelo.metadata.get("versao"),
+        "offsets": modelo.offsets,
     }
     return mun, ranking, meta
 
@@ -212,13 +203,8 @@ def _mil(n: float) -> str:
     return f"{n:,.0f}".replace(",", ".")
 
 
-def _fator(vr: pd.DataFrame, regiao: str) -> str:
-    return f"{vr.loc[regiao, 'previsto_sobre_obs']:.2f}".replace(".", ",")
-
-
-def _ic(vr: pd.DataFrame, regiao: str) -> str:
-    baixo, alto = vr.loc[regiao, ["ic95_baixo", "ic95_alto"]]
-    return f"{baixo:.2f} a {alto:.2f}".replace(".", ",")
+def _ic(linha: pd.Series, quando: str) -> str:
+    return linha[f"ic_{quando}"].replace(".", ",").replace(";", " a").strip("[]")
 
 
 def _md(df: pd.DataFrame) -> str:
@@ -264,27 +250,24 @@ def checagens(mun: pd.DataFrame, ranking: pd.DataFrame) -> dict:
     }
 
 
-def sensibilidade(ranking: pd.DataFrame, taxa_nacional: float) -> dict:
-    """Quanto o potencial muda se o viés por tipo de área for corrigido no lugar do regional.
-
-    Os fatores por tipo de área foram medidos no modelo sem correção, então
-    entram sobre a taxa sem a correção regional (corrigir os dois somaria
-    vieses que se sobrepõem).
-    """
-    sem_correcao = 1000 * ranking["ocasioes_semana_sem_correcao"] / ranking["publico_20_44"]
-    ajustada = sem_correcao / ranking["tipo_area"].map(PREVISTO_SOBRE_OBS)
-    nivel = nivel_potencial(ajustada, taxa_nacional)
-    cruz = pd.crosstab(ranking["potencial"], nivel).reset_index()
+def mudancas_correcao(ranking: pd.DataFrame, taxa_nacional_sem: float) -> dict:
+    """Quantos municípios mudam de nível de potencial por causa da correção por grupo."""
+    sem = 1000 * ranking["ocasioes_semana_sem_correcao"] / ranking["publico_20_44"]
+    nivel = nivel_potencial(sem, taxa_nacional_sem)
+    cruz = pd.crosstab(
+        nivel.rename("sem correção"), ranking["potencial"].rename("com correção")
+    ).reset_index()
     cruz.columns.name = None
-    mudam = ranking.loc[nivel != ranking["potencial"], ["municipio", "tipo_area"]]
-    spearman = pd.Series(ranking["ocasioes_por_mil"]).corr(ajustada, method="spearman")
+    mudam = ranking.loc[nivel != ranking["potencial"], ["municipio", "regiao", "tipo_area"]]
+    spearman = pd.Series(ranking["ocasioes_por_mil"]).corr(sem, method="spearman")
     return {"cruzamento": cruz, "mudam": mudam, "spearman": spearman}
 
 
 def relatorio(mun: pd.DataFrame, ranking: pd.DataFrame, meta: dict) -> str:
     chk = checagens(mun, ranking)
-    sens = sensibilidade(ranking, meta["taxa_nacional"])
-    tipos_mudam = sens["mudam"]["tipo_area"].value_counts().to_dict()
+    taxa_sem = 1000 * mun["ocasioes_semana_sem_correcao"].sum() / mun["publico_20_44"].sum()
+    mud = mudancas_correcao(ranking, taxa_sem)
+    regioes_mudam = mud["mudam"]["regiao"].value_counts().to_dict()
     resumo = (
         ranking.groupby(["regra", "recomendacao"])
         .agg(
@@ -317,11 +300,21 @@ def relatorio(mun: pd.DataFrame, ranking: pd.DataFrame, meta: dict) -> str:
         )
         por_cat.append(f"- **Regra {n}, {nome}:** {nomes}")
     total = mun["publico_20_44"].sum()
-    vies = pd.read_csv(ARQUIVO_VIES)
-    vr = vies[vies["grupo"] == "regiao"].set_index("valor")
-    mudam_regiao = ranking.loc[
-        ranking["regiao"].isin(list(CORRECAO_REGIAO)), ["ocasioes_semana_sem_correcao"]
+    vies = pd.read_csv(ARQUIVO_VIES).set_index(["segmento", "valor"])
+    corrigidos = [
+        (c, v, o) for c, vals in meta["offsets"].items() if c != "global" for v, o in vals.items()
     ]
+
+    def _br(x: float, fmt: str = ".2f") -> str:
+        return format(x, fmt).replace(".", ",")
+
+    linhas_correcao = "\n".join(
+        f"- {v}: previsto ÷ observado {_br(vies.loc[(c, v), 'pso_antes'])} "
+        f"(IC95 {_ic(vies.loc[(c, v)], 'antes')}) sem correção e "
+        f"{_br(vies.loc[(c, v), 'pso_depois'])} (IC95 {_ic(vies.loc[(c, v)], 'depois')}) com "
+        f"ela; offset {_br(o, '+.2f')} no logit (×{_br(np.exp(o))} nas chances)."
+        for c, v, o in corrigidos
+    )
     return f"""# Mapa de Oportunidade
 
 Universo: {len(ranking)} municípios com {_mil(POPULACAO_MINIMA)} habitantes ou mais (Censo 2022), com
@@ -329,7 +322,7 @@ Universo: {len(ranking)} municípios com {_mil(POPULACAO_MINIMA)} habitantes ou 
 Federal ({meta["mes_cnpj"]}), {_mil(meta["pizzarias_cnpj_total"])} pizzarias ativas nos municípios ligados ao IBGE pela regra de
 `cnpj.py`. Checagem: OpenStreetMap de {meta["data_osm"]} ({_mil(meta["pizzarias_osm_total"])} pizzarias).
 
-Taxa nacional esperada (com a correção regional): {meta["taxa_nacional"]:.1f} ocasiões de pizza com
+Taxa nacional esperada (modelo v{meta["versao_modelo"]}, com a correção por grupo): {meta["taxa_nacional"]:.1f} ocasiões de pizza com
 refrigerante por mil pessoas de 20 a 44 anos por semana. Mediana da oferta no universo:
 {meta["mediana_oferta"]:.1f} pizzarias ativas no CNPJ por 100 mil habitantes.
 
@@ -345,14 +338,21 @@ refrigerante por mil pessoas de 20 a 44 anos por semana. Mediana da oferta no un
 
 {_md(top)}
 
-## Correção regional do potencial
+## Correção por grupo do potencial
 
-O modelo final, medido fora da amostra em 2017-18 (`vies.py`), subestima o
-Nordeste (previsto ÷ observado {CORRECAO_REGIAO["Nordeste"]:.2f}) e superestima o
-Centro-Oeste ({CORRECAO_REGIAO["Centro-Oeste"]:.2f}); são as duas regiões em que o IC95
-por bootstrap de setores exclui 1. As ocasiões esperadas desses
-{len(mudam_regiao)} municípios do universo são divididas pelo fator. Norte ({_fator(vr, "Norte")}),
-Sudeste ({_fator(vr, "Sudeste")}) e Sul ({_fator(vr, "Sul")}) ficam sem ajuste porque o IC95 inclui 1.
+O score do modelo v{meta["versao_modelo"]} já sai corrigido nos grupos em que o modelo,
+medido fora da amostra em 2017-18, errava o nível com IC95 que exclui 1 e
+em que a correção se sustenta na metade dos setores que não viu
+(`docs/relatorios/vies_por_grupo.md`):
+
+{linhas_correcao}
+
+Sem a correção, a taxa nacional seria {_br(taxa_sem, ".1f")}; a ordem dos municípios
+pela taxa tem Spearman {_br(mud["spearman"])} com a do mapa e {len(mud["mudam"])} municípios
+mudam de nível de potencial (por região: {", ".join(f"{k} {v}" for k, v in regioes_mudam.items())}).
+Linhas = potencial sem a correção; colunas = potencial do mapa:
+
+{_md(mud["cruzamento"])}
 
 ## Checagem contra dado independente
 
@@ -361,25 +361,13 @@ potencial fizer sentido, onde ele é maior deveria haver mais pizzarias.
 
 - Correlação de Spearman entre a taxa esperada e as pizzarias do CNPJ por
   100 mil, nos {len(ranking)} municípios: {chk["spearman_municipios"]:.2f}
-  (sem a correção regional: {chk["spearman_sem_correcao"]:.2f}).
+  (sem a correção por grupo: {chk["spearman_sem_correcao"]:.2f}).
 - Pizzarias do OSM contra as do CNPJ, por 100 mil: Spearman
   {chk["spearman_osm_cnpj"]:.2f}. O OSM mede sobretudo quanto a cidade foi mapeada
   (ver `osm.py`), por isso saiu da regra.
 - Por região (Spearman {chk["spearman_regioes"]:.2f}, só 5 pontos):
 
 {_md(chk["por_regiao"])}
-
-## Sensibilidade ao viés por tipo de área
-
-Por tipo de área o viés do modelo final não é significativo nas áreas urbanas
-(IC95 inclui 1: capital {PREVISTO_SOBRE_OBS["capital"]:.2f}, resto da RM
-{PREVISTO_SOBRE_OBS["resto_rm"]:.2f}, interior urbano {PREVISTO_SOBRE_OBS["interior_urbano"]:.2f}), então o
-ranking não corrige. Se a correção fosse por tipo de área em vez de por
-região (sobre a taxa sem correção regional), a ordem teria Spearman
-{sens["spearman"]:.2f} com a do mapa e {len(sens["mudam"])} municípios trocariam de nível de potencial
-({tipos_mudam}). Linhas = potencial do mapa; colunas = potencial ajustado:
-
-{_md(sens["cruzamento"])}
 
 {int(ranking["perto_do_corte"].sum())} municípios estão a menos de {MARGEM_CORTE:.0%} de um corte de
 potencial e ficam marcados em `perto_do_corte`.
@@ -389,9 +377,11 @@ potencial e ficam marcados em `perto_do_corte`.
 - O modelo foi treinado na POF 2008-09 e 2017-18 e validado de uma edição
   para a outra; aplicá-lo à população de 2022 supõe que o padrão se manteve
   (hipótese, sem dado; a POF 2024-25 ainda não saiu).
-- A correção regional usa fatores medidos em 2017-18 com {int(vr.loc["Nordeste", "positivos"])} ocasiões no
-  Nordeste e {int(vr.loc["Centro-Oeste", "positivos"])} no Centro-Oeste; os intervalos são largos
-  (Nordeste {_ic(vr, "Nordeste")}; Centro-Oeste {_ic(vr, "Centro-Oeste")}).
+- A correção por grupo usa 2017-18 ({int(vies.loc[("regiao", "Nordeste"), "positivos"])} ocasiões no Nordeste,
+  {int(vies.loc[("regiao", "Centro-Oeste"), "positivos"])} no Centro-Oeste, {int(vies.loc[("tipo_area", "rural"), "positivos"])} no rural); os intervalos
+  são largos, e a regra de significância rodada em só metade dos setores
+  escolhe grupos diferentes, então a correção é uma melhora medida, não um
+  número exato.
 - Renda: a distribuição de cada município é a da UF (microdados do Censo),
   reescalada pela renda média do responsável no município. A forma da
   distribuição dentro do município é hipótese (sem dado).

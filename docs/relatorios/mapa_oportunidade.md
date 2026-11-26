@@ -5,7 +5,7 @@ Universo: 319 municípios com 100.000 habitantes ou mais (Censo 2022), com
 Federal (2026-11), 25.474 pizzarias ativas nos municípios ligados ao IBGE pela regra de
 `cnpj.py`. Checagem: OpenStreetMap de 2026-11-22T14:14:08Z (5.811 pizzarias).
 
-Taxa nacional esperada (com a correção regional): 115.5 ocasiões de pizza com
+Taxa nacional esperada (modelo v1.1.0, com a correção por grupo): 112.6 ocasiões de pizza com
 refrigerante por mil pessoas de 20 a 44 anos por semana. Mediana da oferta no universo:
 13.2 pizzarias ativas no CNPJ por 100 mil habitantes.
 
@@ -13,61 +13,74 @@ refrigerante por mil pessoas de 20 a 44 anos por semana. Mediana da oferta no un
 
 | regra | recomendacao | municipios | publico_20_44_mi | ocasioes_semana_mil |
 |---|---|---|---|---|
-| 1 | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 64 | 17.1 | 3328 |
-| 2 | Conversão no delivery e com criadores | 28 | 7.4 | 1294 |
-| 3 | Awareness e associação com criadores | 164 | 15.6 | 1456 |
-| 4 | Monitorar | 63 | 5.5 | 453 |
+| 1 | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 65 | 17.2 | 3282 |
+| 2 | Conversão no delivery e com criadores | 31 | 7.9 | 1339 |
+| 3 | Awareness e associação com criadores | 161 | 15.3 | 1386 |
+| 4 | Monitorar | 62 | 5.2 | 423 |
 
 ## Primeiros de cada categoria
 
-- **Regra 1, Conversão com a pizzaria do bairro (combo pizza + Guaraná):** São Paulo (SP), Curitiba (PR), Fortaleza (CE), Brasília (DF), Belo Horizonte (MG), Porto Alegre (RS), Goiânia (GO), Florianópolis (SC), Maceió (AL), Teresina (PI)
-- **Regra 2, Conversão no delivery e com criadores:** Rio de Janeiro (RJ), Salvador (BA), Manaus (AM), Recife (PE), São Luís (MA), Belém (PA), Porto Velho (RO), Canoas (RS), Rio Branco (AC), Pelotas (RS)
+- **Regra 1, Conversão com a pizzaria do bairro (combo pizza + Guaraná):** São Paulo (SP), Curitiba (PR), Fortaleza (CE), Brasília (DF), Belo Horizonte (MG), Porto Alegre (RS), Goiânia (GO), Maceió (AL), Florianópolis (SC), Teresina (PI)
+- **Regra 2, Conversão no delivery e com criadores:** Rio de Janeiro (RJ), Salvador (BA), Recife (PE), Manaus (AM), São Luís (MA), Belém (PA), Jaboatão dos Guararapes (PE), Porto Velho (RO), Canoas (RS), Rio Branco (AC)
 - **Regra 3, Awareness e associação com criadores:** Guarulhos (SP), Campinas (SP), Osasco (SP), Ribeirão Preto (SP), Uberlândia (MG), Sorocaba (SP), São José dos Campos (SP), Contagem (MG), Feira de Santana (BA), Serra (ES)
-- **Regra 4, Monitorar:** São Gonçalo (RJ), Jaboatão dos Guararapes (PE), Duque de Caxias (RJ), Nova Iguaçu (RJ), Caucaia (CE), Belford Roxo (RJ), Paulista (PE), Itaquaquecetuba (SP), São João de Meriti (RJ), Caruaru (PE)
+- **Regra 4, Monitorar:** São Gonçalo (RJ), Duque de Caxias (RJ), Nova Iguaçu (RJ), Caucaia (CE), Paulista (PE), Belford Roxo (RJ), Caruaru (PE), Itaquaquecetuba (SP), São João de Meriti (RJ), Campos dos Goytacazes (RJ)
 
 ## Ranking (30 primeiros)
 
 | prioridade | municipio | uf | recomendacao | ocasioes_semana | ocasioes_por_mil | pizzarias_100k | pct_classe_bd |
 |---|---|---|---|---|---|---|---|
-| 1 | São Paulo | SP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 890000 | 198.0 | 21.9 | 80.0 |
-| 2 | Curitiba | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 230900 | 331.9 | 25.3 | 85.0 |
-| 3 | Fortaleza | CE | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 202400 | 206.0 | 17.6 | 65.0 |
-| 4 | Brasília | DF | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 194000 | 168.0 | 21.2 | 69.7 |
-| 5 | Belo Horizonte | MG | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 182200 | 203.9 | 14.8 | 80.0 |
-| 6 | Porto Alegre | RS | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 161500 | 327.3 | 15.3 | 85.0 |
-| 7 | Goiânia | GO | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 109000 | 183.4 | 21.4 | 80.0 |
-| 8 | Florianópolis | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 80500 | 351.3 | 35.4 | 90.0 |
-| 9 | Maceió | AL | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 77300 | 202.3 | 17.3 | 65.0 |
-| 10 | Teresina | PI | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 73000 | 205.5 | 16.2 | 69.1 |
-| 11 | João Pessoa | PB | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 70700 | 213.9 | 14.9 | 70.0 |
-| 12 | Natal | RN | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 62000 | 212.3 | 14.9 | 70.0 |
-| 13 | Campo Grande | MS | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 59400 | 171.3 | 20.8 | 75.0 |
-| 14 | Aracaju | SE | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 52800 | 216.9 | 15.6 | 70.0 |
-| 15 | Cuiabá | MT | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 48200 | 182.8 | 21.5 | 80.0 |
-| 16 | Joinville | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 42800 | 166.7 | 21.7 | 84.9 |
-| 17 | São Bernardo do Campo | SP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 37900 | 120.4 | 16.4 | 75.0 |
-| 18 | Santo André | SP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 35300 | 123.4 | 16.4 | 75.0 |
-| 19 | Londrina | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 34600 | 164.5 | 16.7 | 79.9 |
-| 20 | Caxias do Sul | RS | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 27900 | 154.4 | 15.5 | 75.0 |
-| 21 | Maringá | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 27400 | 171.8 | 24.4 | 80.0 |
-| 22 | Macapá | AP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 26800 | 145.5 | 14.0 | 64.1 |
-| 23 | Vitória | ES | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 26400 | 214.4 | 13.3 | 85.0 |
-| 24 | Boa Vista | RR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 26300 | 150.4 | 17.2 | 69.5 |
-| 25 | Blumenau | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 26000 | 170.2 | 22.7 | 84.9 |
-| 26 | São José | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 24200 | 206.2 | 24.0 | 85.0 |
-| 27 | São José dos Pinhais | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 24100 | 175.5 | 20.0 | 74.2 |
-| 28 | Palmas | TO | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 23800 | 175.7 | 15.9 | 79.9 |
-| 29 | Cascavel | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 22600 | 159.3 | 23.8 | 79.7 |
-| 30 | Niterói | RJ | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 22300 | 129.6 | 14.1 | 75.0 |
+| 1 | São Paulo | SP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 860600 | 191.4 | 21.9 | 80.0 |
+| 2 | Curitiba | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 223500 | 321.2 | 25.3 | 85.0 |
+| 3 | Fortaleza | CE | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 210300 | 214.0 | 17.6 | 65.0 |
+| 4 | Brasília | DF | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 196800 | 170.4 | 21.2 | 69.7 |
+| 5 | Belo Horizonte | MG | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 176200 | 197.2 | 14.8 | 80.0 |
+| 6 | Porto Alegre | RS | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 156300 | 316.7 | 15.3 | 85.0 |
+| 7 | Goiânia | GO | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 110900 | 186.6 | 21.4 | 80.0 |
+| 8 | Maceió | AL | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 80300 | 210.3 | 17.3 | 65.0 |
+| 9 | Florianópolis | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 77900 | 339.8 | 35.4 | 90.0 |
+| 10 | Teresina | PI | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 75500 | 212.6 | 16.2 | 69.1 |
+| 11 | João Pessoa | PB | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 73500 | 222.2 | 14.9 | 70.0 |
+| 12 | Natal | RN | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 64400 | 220.5 | 14.9 | 70.0 |
+| 13 | Campo Grande | MS | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 60300 | 174.0 | 20.8 | 75.0 |
+| 14 | Aracaju | SE | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 54900 | 225.3 | 15.6 | 70.0 |
+| 15 | Cuiabá | MT | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 49000 | 185.7 | 21.5 | 80.0 |
+| 16 | Joinville | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 41200 | 160.3 | 21.7 | 84.9 |
+| 17 | São Bernardo do Campo | SP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 36600 | 116.3 | 16.4 | 75.0 |
+| 18 | Santo André | SP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 34100 | 119.3 | 16.4 | 75.0 |
+| 19 | Londrina | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 33400 | 158.4 | 16.7 | 79.9 |
+| 20 | Caxias do Sul | RS | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 26900 | 148.4 | 15.5 | 75.0 |
+| 21 | Maringá | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 26500 | 166.0 | 24.4 | 80.0 |
+| 22 | Macapá | AP | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 25800 | 140.0 | 14.0 | 64.1 |
+| 23 | Vitória | ES | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 25500 | 207.3 | 13.3 | 85.0 |
+| 24 | Boa Vista | RR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 25400 | 145.2 | 17.2 | 69.5 |
+| 25 | Blumenau | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 25000 | 163.7 | 22.7 | 84.9 |
+| 26 | São José | SC | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 23400 | 199.4 | 24.0 | 85.0 |
+| 27 | São José dos Pinhais | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 23100 | 168.3 | 20.0 | 74.2 |
+| 28 | Palmas | TO | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 23000 | 169.7 | 15.9 | 79.9 |
+| 29 | Cascavel | PR | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 21800 | 153.2 | 23.8 | 79.7 |
+| 30 | Niterói | RJ | Conversão com a pizzaria do bairro (combo pizza + Guaraná) | 21600 | 125.3 | 14.1 | 75.0 |
 
-## Correção regional do potencial
+## Correção por grupo do potencial
 
-O modelo final, medido fora da amostra em 2017-18 (`vies.py`), subestima o
-Nordeste (previsto ÷ observado 0.68) e superestima o
-Centro-Oeste (1.42); são as duas regiões em que o IC95
-por bootstrap de setores exclui 1. As ocasiões esperadas desses
-89 municípios do universo são divididas pelo fator. Norte (1,30),
-Sudeste (1,05) e Sul (0,99) ficam sem ajuste porque o IC95 inclui 1.
+O score do modelo v1.1.0 já sai corrigido nos grupos em que o modelo,
+medido fora da amostra em 2017-18, errava o nível com IC95 que exclui 1 e
+em que a correção se sustenta na metade dos setores que não viu
+(`docs/relatorios/vies_por_grupo.md`):
+
+- Centro-Oeste: previsto ÷ observado 1,42 (IC95 1,03 a 2,16) sem correção e 1,01 (IC95 0,73 a 1,53) com ela; offset -0,31 no logit (×0,73 nas chances).
+- Nordeste: previsto ÷ observado 0,68 (IC95 0,54 a 0,85) sem correção e 0,99 (IC95 0,79 a 1,24) com ela; offset +0,48 no logit (×1,62 nas chances).
+- rural: previsto ÷ observado 1,63 (IC95 1,07 a 2,69) sem correção e 1,04 (IC95 0,68 a 1,74) com ela; offset -0,60 no logit (×0,55 nas chances).
+
+Sem a correção, a taxa nacional seria 110,6; a ordem dos municípios
+pela taxa tem Spearman 0,76 com a do mapa e 38 municípios
+mudam de nível de potencial (por região: Nordeste 19, Centro-Oeste 16, Norte 2, Sudeste 1).
+Linhas = potencial sem a correção; colunas = potencial do mapa:
+
+| sem correção | alto | baixo | medio |
+|---|---|---|---|
+| alto | 88 | 0 | 17 |
+| baixo | 0 | 5 | 11 |
+| medio | 8 | 2 | 188 |
 
 ## Checagem contra dado independente
 
@@ -75,38 +88,22 @@ O potencial vem só do modelo (POF) e do Censo; a oferta vem do CNPJ. Se o
 potencial fizer sentido, onde ele é maior deveria haver mais pizzarias.
 
 - Correlação de Spearman entre a taxa esperada e as pizzarias do CNPJ por
-  100 mil, nos 319 municípios: 0.47
-  (sem a correção regional: 0.47).
+  100 mil, nos 319 municípios: 0.46
+  (sem a correção por grupo: 0.47).
 - Pizzarias do OSM contra as do CNPJ, por 100 mil: Spearman
   0.30. O OSM mede sobretudo quanto a cidade foi mapeada
   (ver `osm.py`), por isso saiu da regra.
-- Por região (Spearman 0.90, só 5 pontos):
+- Por região (Spearman 1.00, só 5 pontos):
 
 | regiao | publico_20_44_mi | ocasioes_por_mil | pizzarias_cnpj_100k |
 |---|---|---|---|
-| Centro-Oeste | 6.5 | 112.3 | 16.4 |
-| Nordeste | 21.1 | 101.2 | 9.3 |
-| Norte | 6.9 | 87.5 | 7.5 |
-| Sudeste | 32.2 | 113.0 | 13.4 |
-| Sul | 11.3 | 168.1 | 17.0 |
+| Centro-Oeste | 6.5 | 113.0 | 16.4 |
+| Nordeste | 21.1 | 102.8 | 9.3 |
+| Norte | 6.9 | 82.6 | 7.5 |
+| Sudeste | 32.2 | 108.7 | 13.4 |
+| Sul | 11.3 | 160.1 | 17.0 |
 
-## Sensibilidade ao viés por tipo de área
-
-Por tipo de área o viés do modelo final não é significativo nas áreas urbanas
-(IC95 inclui 1: capital 1.23, resto da RM
-0.79, interior urbano 0.89), então o
-ranking não corrige. Se a correção fosse por tipo de área em vez de por
-região (sobre a taxa sem correção regional), a ordem teria Spearman
-0.77 com a do mapa e 61 municípios trocariam de nível de potencial
-({'resto_rm': 30, 'interior_urbano': 26, 'capital': 5}). Linhas = potencial do mapa; colunas = potencial ajustado:
-
-| potencial | alto | baixo | medio |
-|---|---|---|---|
-| alto | 85 | 0 | 7 |
-| baixo | 0 | 4 | 1 |
-| medio | 47 | 6 | 169 |
-
-55 municípios estão a menos de 15% de um corte de
+58 municípios estão a menos de 15% de um corte de
 potencial e ficam marcados em `perto_do_corte`.
 
 ## Limitações
@@ -114,9 +111,11 @@ potencial e ficam marcados em `perto_do_corte`.
 - O modelo foi treinado na POF 2008-09 e 2017-18 e validado de uma edição
   para a outra; aplicá-lo à população de 2022 supõe que o padrão se manteve
   (hipótese, sem dado; a POF 2024-25 ainda não saiu).
-- A correção regional usa fatores medidos em 2017-18 com 272 ocasiões no
-  Nordeste e 114 no Centro-Oeste; os intervalos são largos
-  (Nordeste 0,54 a 0,85; Centro-Oeste 1,03 a 2,16).
+- A correção por grupo usa 2017-18 (272 ocasiões no Nordeste,
+  114 no Centro-Oeste, 59 no rural); os intervalos
+  são largos, e a regra de significância rodada em só metade dos setores
+  escolhe grupos diferentes, então a correção é uma melhora medida, não um
+  número exato.
 - Renda: a distribuição de cada município é a da UF (microdados do Censo),
   reescalada pela renda média do responsável no município. A forma da
   distribuição dentro do município é hipótese (sem dado).
