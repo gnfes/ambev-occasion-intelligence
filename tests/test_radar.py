@@ -71,17 +71,16 @@ def test_tendencia_sobe_quando_passa_da_faixa_de_ruido():
 
 
 @pytest.mark.parametrize(
-    ("status", "janela", "alto", "nivel"),
+    ("status", "alto", "nivel"),
     [
-        ("subindo", 0, 3, "oportunidade"),
-        ("estável", 30, 1, "oportunidade"),
-        ("subindo", 0, 0, "observar"),
-        ("caindo", 0, 5, "atencao"),
-        ("estável", 0, 5, "estavel"),
+        ("subindo", 3, "oportunidade"),
+        ("subindo", 0, "observar"),
+        ("caindo", 5, "atencao"),
+        ("estável", 5, "estavel"),
     ],
 )
-def test_regra_do_alerta(status, janela, alto, nivel):
-    assert radar.regra_alerta(status, janela, 10.0, alto)[0] == nivel
+def test_regra_do_alerta(status, alto, nivel):
+    assert radar.regra_alerta(status, alto)[0] == nivel
 
 
 def test_ajuste_recupera_coeficiente_conhecido():
@@ -129,3 +128,9 @@ def test_uf_sem_volume_fica_fora_do_painel():
         ]
     )
     assert radar.sem_volume(serie) == ["RR"]
+
+
+def test_tendencia_sem_ano_anterior_medivel_volta_none():
+    valores = np.full(160, 50.0)
+    valores[-56:-52] = 0  # mesmas 4 semanas do ano anterior zeradas
+    assert radar.tendencia(_serie(valores)) is None

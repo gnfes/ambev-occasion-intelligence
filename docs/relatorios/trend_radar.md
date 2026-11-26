@@ -83,10 +83,11 @@ Pontos percentuais de desvio por unidade da variável. IC95 por bootstrap de blo
 
 ## Regras do alerta
 
-1. Subindo (ou próxima janela prevista acima da faixa de ruído) e município de potencial alto no Mapa → oportunidade.
-2. Subindo sem município de potencial alto → observar.
-3. Caindo → atenção.
+1. Subindo (variação anual acima da faixa de ruído) e há município de potencial alto no Mapa → oportunidade.
+2. Subindo, sem município de potencial alto → observar (interesse sem base de ocasiões estimada).
+3. Caindo (variação anual abaixo da faixa) → atenção.
 4. Resto → estável.
+A próxima janela (feriados e previsão do tempo) é informativa e não muda o nível: ela mede o desvio contra a média do último ano, outra régua que a da tendência, e fora do tempo não bateu o baseline.
 
 ## Limitações
 

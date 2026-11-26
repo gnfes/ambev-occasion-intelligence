@@ -18,15 +18,18 @@ from occasion.paths import REFERENCIA_DIR
 
 ARQUIVO = REFERENCIA_DIR / "radar_feriados.csv"
 URL = "https://brasilapi.com.br/api/feriados/v1/{ano}"
-ANOS = range(2016, 2028)
+INICIO = 2016
 
 
 def baixar(destino: Path = ARQUIVO) -> Path:
+    """Baixa de 2016 até o ano que vem (a próxima janela do Radar pode virar o ano)."""
+    import datetime as dt
+
     import httpx
 
     partes = []
     with httpx.Client() as cliente:
-        for ano in ANOS:
+        for ano in range(INICIO, dt.date.today().year + 2):
             resposta = cliente.get(URL.format(ano=ano), timeout=60)
             resposta.raise_for_status()
             partes.append(pd.DataFrame(resposta.json()))

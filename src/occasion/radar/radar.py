@@ -257,13 +257,19 @@ def validar(p: pd.DataFrame, variaveis_clima: list[str]) -> tuple[pd.DataFrame, 
 # --------------------------------------------------------------------------- alertas
 
 
-def tendencia(serie_uf: pd.DataFrame) -> dict:
-    """Variação anual das últimas 4 semanas e faixa de ruído da própria UF."""
+def tendencia(serie_uf: pd.DataFrame) -> dict | None:
+    """Variação anual das últimas 4 semanas e faixa de ruído da própria UF.
+
+    None quando não dá para medir (ano anterior com zeros ou histórico curto).
+    """
     s = serie_uf.set_index("semana")["indice"].sort_index()
     janela = s.rolling(JANELA_SEMANAS).mean()
     variacao = 100 * (janela / janela.shift(52) - 1)
+    variacao = variacao.replace([np.inf, -np.inf], np.nan)
     historico = variacao.iloc[:-1].dropna()
     atual = float(variacao.iloc[-1])
+    if not np.isfinite(atual) or len(historico) < 26:
+        return None
     # Desvio-padrão robusto (MAD x 1,4826): um pico isolado, como uma semana de
     # Carnaval, não alarga a faixa da UF inteira.
     mad = float((historico - historico.median()).abs().median())
@@ -316,22 +322,30 @@ def contexto_mapa(mapa: pd.DataFrame) -> dict[str, dict]:
     return out
 
 
-def regra_alerta(
-    status: str, janela_pct: float, faixa: float, potencial_alto: int
-) -> tuple[str, str]:
-    """Nível do alerta (regra documentada, a primeira que vale decide).
+REGRAS_ALERTA = (
+    (
+        "1. Subindo (variação anual acima da faixa de ruído) e há município de potencial alto no "
+        "Mapa → oportunidade."
+    ),
+    (
+        "2. Subindo, sem município de potencial alto → observar (interesse sem base de ocasiões "
+        "estimada)."
+    ),
+    "3. Caindo (variação anual abaixo da faixa) → atenção.",
+    "4. Resto → estável.",
+    (
+        "A próxima janela (feriados e previsão do tempo) é informativa e não muda o nível: ela "
+        "mede o desvio contra a média do último ano, outra régua que a da tendência, e fora do "
+        "tempo não bateu o baseline."
+    ),
+)
 
-    1. Subindo, ou próxima janela prevista acima da faixa de ruído, e há
-       município de potencial alto no Mapa → oportunidade.
-    2. Subindo ou janela acima da faixa, sem município de potencial alto →
-       observar (interesse sem base de ocasiões estimada).
-    3. Caindo → atenção.
-    4. Resto → estável.
-    """
-    sinal = status == "subindo" or janela_pct > faixa
-    if sinal and potencial_alto > 0:
+
+def regra_alerta(status: str, potencial_alto: int) -> tuple[str, str]:
+    """Nível do alerta: ver `REGRAS_ALERTA` (a primeira que vale decide)."""
+    if status == "subindo" and potencial_alto > 0:
         return "oportunidade", "interesse em alta numa UF com municípios de potencial alto no Mapa"
-    if sinal:
+    if status == "subindo":
         return "observar", "interesse em alta, mas a UF não tem município de potencial alto no Mapa"
     if status == "caindo":
         return "atencao", "interesse abaixo do mesmo período do ano passado, além da faixa de ruído"
@@ -393,7 +407,11 @@ def montar(hoje: dt.date | None = None) -> tuple[dict, pd.DataFrame]:
         )
     for sigla, g in fechadas[~fechadas["sigla"].isin(fora)].groupby("sigla"):
         t = tendencia(g)
-        ultimas = dados[dados["sigla"] == sigla].sort_values("semana").tail(JANELA_SEMANAS)
+        if t is None:
+            raise ValueError(f"{sigla}: série de pizza sem variação anual medível")
+        # As mesmas 4 semanas fechadas da tendência; semana sem clima fica no normal.
+        ultimas = p[p["sigla"] == sigla].sort_values("semana").tail(JANELA_SEMANAS).copy()
+        ultimas[variaveis_clima] = ultimas[variaveis_clima].fillna(0.0)
         contrib = contribuicoes(ajuste, ultimas)
         observado = float(ultimas["desvio"].mean())
         contrib["nao_explicado"] = observado - sum(contrib.values())
@@ -401,9 +419,7 @@ def montar(hoje: dt.date | None = None) -> tuple[dict, pd.DataFrame]:
         contrib_fut = contribuicoes(ajuste, fut)
         janela_pct = float(np.mean(ajuste.prever(fut)))
         ctx = ctx_mapa.get(sigla, {"municipios_potencial_alto": 0})
-        nivel, motivo = regra_alerta(
-            t["status"], janela_pct, t["faixa_ruido_pct"], ctx["municipios_potencial_alto"]
-        )
+        nivel, motivo = regra_alerta(t["status"], ctx["municipios_potencial_alto"])
         alertas.append(
             {
                 "sigla": sigla,
@@ -461,9 +477,9 @@ def montar(hoje: dt.date | None = None) -> tuple[dict, pd.DataFrame]:
 def sinal_marca(serie: pd.DataFrame, sigla: str) -> dict:
     """Variação anual de "guaraná" (sinal de marca), só onde há volume."""
     g = serie[(serie["termo"] == "guaraná") & (serie["sigla"] == sigla) & ~serie["parcial"]]
-    if g.empty or (g["indice"] == 0).mean() > MAX_ZEROS:
+    t = None if g.empty or (g["indice"] == 0).mean() > MAX_ZEROS else tendencia(g)
+    if t is None:
         return {"status": "sem volume", "variacao_anual_pct": None}
-    t = tendencia(g)
     return {"status": t["status"], "variacao_anual_pct": t["variacao_anual_pct"]}
 
 
@@ -555,13 +571,7 @@ def relatorio(saida: dict, coeficientes: pd.DataFrame) -> str:
         "",
         "## Regras do alerta",
         "",
-        (
-            "1. Subindo (ou próxima janela prevista acima da faixa de ruído) e município de "
-            "potencial alto no Mapa → oportunidade."
-        ),
-        "2. Subindo sem município de potencial alto → observar.",
-        "3. Caindo → atenção.",
-        "4. Resto → estável.",
+        *REGRAS_ALERTA,
         "",
         "## Limitações",
         "",
@@ -584,9 +594,11 @@ def relatorio(saida: dict, coeficientes: pd.DataFrame) -> str:
 def main(destino: Path = PROCESSED_DIR) -> None:
     saida, coeficientes = montar()
     ARQUIVO_ALERTAS.parent.mkdir(parents=True, exist_ok=True)
-    ARQUIVO_ALERTAS.write_text(json.dumps(saida, ensure_ascii=False, indent=1))
+    ARQUIVO_ALERTAS.write_text(
+        json.dumps(saida, ensure_ascii=False, indent=1, allow_nan=False), encoding="utf-8"
+    )
     destino.mkdir(parents=True, exist_ok=True)
-    (destino / ARQUIVO_RELATORIO.name).write_text(relatorio(saida, coeficientes))
+    (destino / ARQUIVO_RELATORIO.name).write_text(relatorio(saida, coeficientes), encoding="utf-8")
     print(ARQUIVO_ALERTAS)
     print(destino / ARQUIVO_RELATORIO.name)
 

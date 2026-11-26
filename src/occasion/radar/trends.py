@@ -41,11 +41,14 @@ CATEGORIA = 71  # Comida e bebida
 
 
 def _pedido(trends, termo: str, geo: str, tentativas: int = 5) -> pd.DataFrame:
+    import requests
+    from pytrends.exceptions import ResponseError
+
     for tentativa in range(tentativas):
         try:
             trends.build_payload([termo], cat=CATEGORIA, geo=geo, timeframe=JANELA)
             return trends.interest_over_time()
-        except Exception as erro:  # o pytrends levanta TooManyRequestsError e afins
+        except (ResponseError, requests.RequestException) as erro:  # inclui o 429 do Trends
             if tentativa == tentativas - 1:
                 raise
             espera = 30 * (tentativa + 1)
