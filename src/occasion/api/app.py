@@ -27,9 +27,10 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from occasion.decisao import engine
+from occasion.decisao import engine, fontes
 from occasion.mapa.oportunidade import ARQUIVO_PONTOS_REFERENCIA
 from occasion.modelagem import final
+from occasion.modelagem import incerteza as inc
 from occasion.modelagem.tabela import FAIXAS_IDADE, TURNOS
 from occasion.radar import radar as trend_radar
 from occasion.radar import trends as radar_trends
@@ -109,7 +110,60 @@ class MelhorMomento(BaseModel):
     dia: str
     turno: str
     occasion_score: float
+    occasion_score_ic95: list[float] | None = Field(
+        description="IC95 do score (bootstrap por setor); vazio sem as réplicas"
+    )
     classification: Literal["alta", "media", "baixa"]
+    prob_faixa: dict[Literal["alta", "media", "baixa"], float] | None = Field(
+        description="fração das réplicas em cada faixa no melhor momento"
+    )
+    faixa_estavel: bool | None
+
+
+class SuporteValor(BaseModel):
+    feature: str
+    valor: str = Field(description="código do modelo (dia 1 a 7, sexo 1 = homem, 2 = mulher)")
+    ocasioes: int = Field(description="ocasiões reais (sem peso) nas duas edições da POF")
+    linhas: int
+
+
+class SuportePerfil(BaseModel):
+    chave: dict[str, str]
+    ocasioes: int
+    linhas: int
+
+
+class Suporte(BaseModel):
+    perfil: SuportePerfil = Field(
+        description="perfil = região × tipo de área × faixa de idade × sexo × classe de renda"
+    )
+    por_entrada: list[SuporteValor]
+
+
+class Incerteza(BaseModel):
+    disponivel: bool
+    occasion_score_ic95: list[float] | None = Field(
+        description="IC95 do score em 0 a 100: só a variação da amostra da POF"
+    )
+    prob_faixa: dict[Literal["alta", "media", "baixa"], float] | None = Field(
+        description="fração das réplicas do bootstrap em cada faixa"
+    )
+    faixa_estavel: bool | None = Field(
+        description="o IC95 fica dentro de uma só faixa (não cruza um corte)"
+    )
+    poucos_dados: bool | None
+    avisos: list[str]
+    suporte: Suporte | None
+    metodo: str | None
+
+
+class Fonte(BaseModel):
+    id: str
+    numero: str
+    fonte: str
+    ano: str
+    url: str
+    detalhe: str | None
 
 
 class PosicaoClasse(BaseModel):
@@ -138,6 +192,11 @@ class Recomendacao(BaseModel):
     class_position: PosicaoClasse = Field(
         description="posição dentro da classe de renda; não muda a regra, serve à expansão B a D"
     )
+    uncertainty: Incerteza = Field(
+        description="IC95, estabilidade da faixa e aviso de poucos dados; não muda a regra"
+    )
+    sources: list[Fonte] = Field(description="fonte, ano e link de cada número da resposta")
+    limitations: list[str] = Field(description="o que o modelo não sabe")
     model_metadata: dict
 
 
@@ -148,10 +207,23 @@ def _caminho_modelo() -> Path:
 @asynccontextmanager
 async def _ciclo(app: FastAPI):
     app.state.modelo = final.carregar(_caminho_modelo())
+    app.state.incerteza = _ler_incerteza(_caminho_incerteza(), app.state.modelo)
     app.state.mapa = _ler_mapa(ARQUIVO_PONTOS_REFERENCIA)
     app.state.radar = _ler_radar(trend_radar.ARQUIVO_ALERTAS)
     app.state.radar_series = _ler_series(radar_trends.ARQUIVO)
     yield
+
+
+def _caminho_incerteza() -> Path:
+    return Path(os.environ.get("OCCASION_INCERTEZA_PATH", inc.ARQUIVO))
+
+
+def _ler_incerteza(caminho: Path, modelo: final.OccasionScore) -> inc.Incerteza | None:
+    """Réplicas do bootstrap (None se o arquivo não existir ou não casar com o modelo servido)."""
+    if not caminho.exists():
+        return None
+    incerteza = inc.carregar(caminho)
+    return incerteza if inc.compativel(incerteza, modelo) else None
 
 
 def _ler_mapa(caminho: Path) -> list[dict]:
@@ -198,8 +270,13 @@ def health(request: Request) -> dict:
 
 @app.get("/model")
 def model(request: Request) -> dict:
-    """Metadados do modelo: algoritmo, treino, calibração, faixas e validação temporal."""
-    return _modelo(request).metadata
+    """Metadados do modelo: algoritmo, treino, calibração, faixas, validação e incerteza."""
+    incerteza = request.app.state.incerteza
+    return {
+        **_modelo(request).metadata,
+        "incerteza": incerteza.metadata if incerteza else None,
+        "limitacoes": fontes.LIMITES,
+    }
 
 
 @app.get("/opcoes")
@@ -230,7 +307,7 @@ def predict(entrada: ContextoEntrada, request: Request) -> dict:
         contexto = engine.Contexto(**entrada.model_dump(exclude={"versao_modelo"}))
     except ValueError as erro:  # regra do engine que o schema não cobre
         raise HTTPException(status_code=422, detail=str(erro)) from erro
-    return engine.decidir(contexto, modelo).como_dict()
+    return engine.decidir(contexto, modelo, incerteza=request.app.state.incerteza).como_dict()
 
 
 @app.get("/mapa")

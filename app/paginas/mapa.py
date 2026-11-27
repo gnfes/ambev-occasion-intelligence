@@ -12,7 +12,7 @@ import cliente
 st.title("Mapa de Oportunidade")
 st.caption(
     "319 municípios com 100 mil habitantes ou mais (Censo 2022). Potencial = ocasiões de pizza "
-    "com refrigerante esperadas pelo Occasion Score no público de 20 a 44 anos; oferta = "
+    "com refrigerante esperadas pelo Occasion Score (POF 2008-09 e 2017-18, IBGE) no público de 20 a 44 anos; oferta = "
     "pizzarias ativas no CNPJ (Receita Federal, 11/2026) por 100 mil habitantes. A prioridade é "
     "uma regra documentada aplicada ao território, não uma nova previsão."
 )

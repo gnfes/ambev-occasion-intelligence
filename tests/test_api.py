@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from occasion.api.app import app
 from occasion.decisao import engine
 from occasion.modelagem import final
+from occasion.modelagem import incerteza as inc
 
 ENTRADA = {
     "turno": "noite",
@@ -53,7 +54,11 @@ def test_predict_segue_o_contrato_e_o_engine(cliente):
         "model_metadata",
     ):
         assert campo in corpo
-    esperado = engine.decidir(engine.Contexto(**ENTRADA), final.carregar()).como_dict()
+    from occasion.api import app as api
+
+    modelo = final.carregar()
+    replicas = api._ler_incerteza(api._caminho_incerteza(), modelo)
+    esperado = engine.decidir(engine.Contexto(**ENTRADA), modelo, incerteza=replicas).como_dict()
     assert corpo == esperado
     assert corpo["recommendation_channel"] == "app de delivery"
     assert len(corpo["top_factors"]) == 3
@@ -127,3 +132,28 @@ def test_mapa_tem_os_319_municipios_em_ordem(cliente):
     assert all(-34 < p["lat"] < 6 and -74 < p["lon"] < -34 for p in pontos)
     monitorar = [p for p in pontos if p["categoria"] == "monitorar"]
     assert monitorar and all(p["canal"] is None for p in monitorar)
+
+
+def test_predict_traz_incerteza_fontes_e_limites(cliente):
+    corpo = cliente.post("/predict", json=ENTRADA).json()
+    u = corpo["uncertainty"]
+    assert u["disponivel"] is True
+    lo, hi = u["occasion_score_ic95"]
+    assert lo < corpo["occasion_score"] < hi
+    assert corpo["best_moment"]["occasion_score_ic95"] is not None
+    assert {f["id"] for f in corpo["sources"]} >= {"score", "intervalo"}
+    assert corpo["limitations"]
+    meta = cliente.get("/model").json()
+    assert meta["incerteza"]["versao_modelo"] == final.VERSAO
+    assert meta["incerteza"]["replicas"] == inc.N_REPLICAS
+
+
+def test_replicas_de_outra_versao_sao_ignoradas(tmp_path, monkeypatch):
+    from occasion.api import app as api
+
+    velho = inc.carregar()
+    velho.metadata = {**velho.metadata, "versao_modelo": "0.0.0"}
+    monkeypatch.setenv("OCCASION_INCERTEZA_PATH", str(velho.salvar(tmp_path / "v.npz")))
+    with TestClient(api.app) as c:
+        u = c.post("/predict", json=ENTRADA).json()["uncertainty"]
+    assert u["disponivel"] is False
