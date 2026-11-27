@@ -215,13 +215,13 @@ cls.loc[list("ABCDE")]
 # consumo de pizza na classe A com dados da Ambev, que não temos para comparar; aqui a classe é
 # pela renda do domicílio em salários mínimos, e a classe A tem só 26 ocasiões na amostra. O
 # ponto firme é outro: as classes B a D somam 86% das ocasiões, porque são a maior parte da
-# população. É isso que sustenta a regra 4 do Decision Engine (awareness nas classes B a D).
+# população. É isso que sustenta a regra 6 do Decision Engine (awareness nas classes B a D).
 #
 # ## 5. Canal: em casa ou fora
 #
 # A POF registra se o alimento foi consumido dentro ou fora do domicílio, mas não tem código de
 # delivery (questionário POF 7 do IBGE): pizza entregue conta como "em casa". Por isso o canal
-# não é feature do modelo; entra como entrada opcional do app e muda só o canal da regra 2.
+# não é feature do modelo; entra como entrada opcional do app e escolhe a categoria da regra 4.
 
 # %%
 pos = df[df["y"] == 1]
@@ -238,7 +238,7 @@ pos.groupby("edicao").apply(
 # ## 6. Guaraná dentro da ocasião
 #
 # Fatia das ocasiões de pizza com refrigerante em que o refrigerante inclui guaraná. É o espaço
-# de conversão da regra 2: a ocasião acontece, mas o guaraná está em uma minoria delas. O
+# de conversão da regra 3: a ocasião acontece, mas o guaraná está em uma minoria delas. O
 # intervalo de confiança por bootstrap de setores está no relatório de avaliação
 # (`docs/relatorios/avaliacao_occasion_score.md`).
 

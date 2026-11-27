@@ -46,6 +46,8 @@ from occasion.paths import REFERENCIA_DIR
 ARQUIVO = REFERENCIA_DIR / "associacao_guarana.json"
 EDICAO = "2017_2018"
 IDADE_MIN, IDADE_MAX = 20, 44
+# Faixas do modelo dentro do público medido; fora delas o Engine não usa os sinais.
+FAIXAS_MEDIDAS = ("20-24", "25-29", "30-34", "35-39", "40-44")
 MIN_OCASIOES_PIZZA = 60
 REPLICAS = 1000
 SEMENTE = 2026
@@ -58,7 +60,9 @@ _PESSOA_DIA = ["id_pessoa", "dia_registro"]
 
 
 def _classe(renda_sm: pd.Series) -> pd.Series:
-    def uma(x: float) -> str:
+    def uma(x: float) -> str | float:
+        if pd.isna(x):  # renda ausente não vira classe A
+            return np.nan
         for limite, classe in CORTES_CLASSE:
             if x <= limite:
                 return classe
@@ -80,10 +84,10 @@ def _preparar(consumo: pd.DataFrame, areas: pd.DataFrame) -> pd.DataFrame:
     limites = [9, *T.FAIXAS_IDADE.values()]
     c["faixa_idade"] = pd.cut(
         c["idade"].astype(float), limites, labels=list(T.FAIXAS_IDADE)
-    ).astype(str)
+    ).astype(object)
     c["sexo"] = c["sexo"].map({1: "homem", 2: "mulher"})
     c = T._tipo_area(c, areas, "2017-18")
-    c["tipo_area"] = c["tipo_area"].astype(str)
+    c["tipo_area"] = c["tipo_area"].astype(object)
     c["turno"] = T.turno_da_hora(c["hora"])
     return c
 

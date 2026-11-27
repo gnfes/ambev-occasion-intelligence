@@ -48,11 +48,12 @@ FONTES: dict[str, dict] = {
         "detalhe": AVALIACAO,
     },
     "guarana_21": {
-        "numero": "Guaraná em 21% das ocasiões (IC95 15% a 28%), sem diferença entre segmentos",
+        "numero": "Guaraná em 21% das ocasiões de pizza com refrigerante no Brasil (IC95 14% a "
+        "30%); por segmento, ver a fonte de associação",
         "fonte": _POF_CALCULO,
         "ano": "2017-18",
         "url": POF_2017,
-        "detalhe": AVALIACAO,
+        "detalhe": f"{REPO}/data/referencia/associacao_guarana.json",
     },
     "classes_86": {
         "numero": "Classes B a D somam 86% das ocasiões; a classe A, 5%",
@@ -126,7 +127,7 @@ LIMITES: list[str] = [
 
 
 def fontes_da_resposta(
-    regra: int, com_mensagens: bool, com_associacao: bool = False, sem_canal: bool = False
+    regra: int, com_mensagens: bool, com_associacao: bool = False, cita_em_casa: bool = False
 ) -> list[dict]:
     """Fonte e ano de cada número que aparece numa recomendação."""
     chaves = ["score", "intervalo", "media_populacao", *POR_REGRA.get(regra, [])]
@@ -134,7 +135,7 @@ def fontes_da_resposta(
         chaves.append("associacao")
     if regra == 6 and not com_associacao:
         chaves.append("classes_86")
-    if regra == 4 and sem_canal:
+    if regra == 4 and cita_em_casa:
         chaves.append("em_casa_66")
     if com_mensagens:
         chaves.append("zero_worldpanel")

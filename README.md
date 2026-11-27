@@ -365,7 +365,7 @@ o movimento. Buscas medem interesse, não consumo: o Radar não entra no Occasio
   por grupo foi escolhida nos dados inteiros; rodada em só metade dos setores, a regra de
   significância escolhe grupos diferentes, então os offsets são uma melhora medida, não exata.
 - O modelo é aditivo: o melhor dia e turno é o mesmo (sábado à noite) para todo perfil.
-- Mensagens e a regra 3 trazem hipóteses marcadas como tais; nenhuma recomendação afirma
+- Mensagens e a regra 5 trazem hipóteses marcadas como tais; nenhuma recomendação afirma
   efeito causal.
 
 ## Estrutura do repositório

@@ -128,6 +128,27 @@ def test_sem_canal_cita_consumo_em_casa(modelo):
     assert "em_casa_66" in {f["id"] for f in r.sources}
 
 
+def test_sem_tabela_nao_cita_fonte_de_em_casa(modelo):
+    c = e.Contexto("noite", 6, "Sudeste", "interior_urbano", "25-29", "homem", 8)
+    r = e.decidir(c, modelo, tabela_associacao={})
+    assert r.recommendation_category == C.COMBO_EM_CASA
+    assert "em_casa_66" not in {f["id"] for f in r.sources}
+
+
+def test_fora_de_20_a_44_nao_usa_associacao(modelo):
+    # A associação foi medida só em 20 a 44 anos; o Sul não vira awareness para 60+.
+    c = e.Contexto("noite", 6, "Sul", "capital", "60+", "homem", 8, canal="delivery")
+    r = e.decidir(c, modelo, tabela_associacao=TABELA)
+    assert r.association["disponivel"] is False
+    assert r.association["lacuna"] == r.association["baixa_presenca"] == []
+    assert r.rule != 2
+
+
+def test_texto_do_segmento_por_sexo():
+    assert e._segmento_texto("sexo", "homem") == "entre homens"
+    assert e._segmento_texto("sexo", "mulher") == "entre mulheres"
+
+
 def test_contrato_de_saida(modelo):
     c = e.Contexto("noite", 2, "Nordeste", "interior_urbano", "35-39", "mulher", 3)
     saida = e.decidir(c, modelo).como_dict()

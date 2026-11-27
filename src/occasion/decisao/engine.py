@@ -358,9 +358,18 @@ def regra(
     return 7, Categoria.SEM_ATIVACAO
 
 
-@lru_cache(maxsize=1)
 def _associacao_padrao() -> dict | None:
-    return associacao.carregar()
+    """Tabela gravada, relida quando o arquivo muda (sem reiniciar a API)."""
+    try:
+        versao = associacao.ARQUIVO.stat().st_mtime_ns
+    except FileNotFoundError:
+        versao = None
+    return _carregar_associacao(versao)
+
+
+@lru_cache(maxsize=1)
+def _carregar_associacao(versao: int | None) -> dict | None:
+    return associacao.carregar() if versao is not None else None
 
 
 def _segmentos(contexto: Contexto) -> dict[str, str]:
@@ -391,7 +400,9 @@ def _segmento_texto(dimensao: str, valor: str) -> str:
         return f"na classe {valor}"
     if dimensao == "faixa_idade":
         return f"na faixa de {valor.replace('-', ' a ')} anos"
-    return f"entre {valor}s" if dimensao == "sexo" else f"{dimensao} = {valor}"
+    if dimensao == "sexo":
+        return {"homem": "entre homens", "mulher": "entre mulheres"}.get(valor, f"sexo {valor}")
+    return f"{dimensao} = {valor}"
 
 
 def _resumo_segmento(s: dict) -> dict:
@@ -469,10 +480,12 @@ def decidir(
     melhor = melhor_momento(modelo, contexto, incerteza)
     incerto = avaliar_incerteza(modelo, incerteza, linha, contexto.classe, faixa)
     tabela = _associacao_padrao() if tabela_associacao is None else tabela_associacao
-    sinal = associacao.sinais(tabela, _segmentos(contexto))
+    # Os sinais foram medidos em 20 a 44 anos; fora disso o Engine não os usa.
+    medido = contexto.faixa_idade in associacao.FAIXAS_MEDIDAS
+    sinal = associacao.sinais(tabela if medido else None, _segmentos(contexto))
     lacuna = [_resumo_segmento(s) for s in sinal["lacuna"]]
     presenca = [_resumo_segmento(s) for s in sinal["baixa_presenca"]]
-    brasil = tabela["brasil"] if tabela else None
+    brasil = tabela["brasil"] if tabela and medido else None
     n, categoria = regra(
         faixa,
         contexto.turno,
@@ -563,7 +576,7 @@ def decidir(
         rule=n,
         best_moment=melhor,
         association={
-            "disponivel": bool(tabela),
+            "disponivel": bool(tabela) and medido,
             "lacuna": lacuna,
             "baixa_presenca": presenca,
             "brasil_guarana_refri_geral_pct": ref_br,
@@ -574,7 +587,7 @@ def decidir(
             n,
             com_mensagens=bool(mensagens),
             com_associacao=bool(lacuna or presenca),
-            sem_canal=contexto.canal is None,
+            cita_em_casa=contexto.canal is None and casa is not None,
         ),
         limitations=list(fontes.LIMITES),
         model_metadata={

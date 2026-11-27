@@ -77,6 +77,11 @@ pc = r.get("class_position") or {}
 inc = r.get("uncertainty") or {}
 
 
+def pct(x: float) -> str:
+    """Percentual com uma casa e vírgula, como na justificativa do engine."""
+    return f"{x:.1f}".replace(".", ",")
+
+
 def num(x: float) -> str:
     """Mesmo formato do engine: 2 algarismos significativos abaixo de 0,1, para não virar 0,00."""
     return f"{x:.2f}" if x >= 0.1 else f"{x:.2g}"
@@ -195,8 +200,8 @@ with esq:
     for chave, titulo in (("lacuna", "Lacuna de associação"), ("baixa_presenca", "Baixa presença")):
         for seg in assoc.get(chave, []):
             st.caption(
-                f"{titulo} em {seg['segmento']}: Guaraná em {num(seg['guarana_refri_geral_pct'])}% "
-                f"do refrigerante em geral e {num(seg['guarana_na_pizza_pct'])}% na pizza "
+                f"{titulo} em {seg['segmento']}: Guaraná em {pct(seg['guarana_refri_geral_pct'])}% "
+                f"do refrigerante em geral e {pct(seg['guarana_na_pizza_pct'])}% na pizza "
                 f"({seg['ocasioes_pizza']} ocasiões de pizza, POF 2017-18)."
             )
     if r["messages"]:
