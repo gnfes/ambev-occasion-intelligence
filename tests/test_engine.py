@@ -208,11 +208,16 @@ def test_contexto_recusa_renda_invalida_com_value_error(renda):
         e.Contexto("noite", 6, "Sudeste", "capital", "25-29", "homem", renda)
 
 
-def test_mensagem_da_regra_5_fala_do_momento_recomendado(modelo):
+def test_regra_5_age_na_melhor_noite_de_semana(modelo):
+    # A frequência se cria numa noite de segunda a quinta; a mensagem acompanha esse momento.
     c = e.Contexto("noite", 2, "Nordeste", "interior_urbano", "35-39", "mulher", 3)
     r = e.decidir(c, modelo, tabela_associacao=TABELA)
     assert r.rule == 5
-    assert "fim de semana" in r.messages[0]
+    nds = r.activation_plan["quando"]["noite_de_semana"]
+    assert nds["dia_semana"] in (1, 2, 3, 4)
+    assert r.activation_plan["quando"]["dia_semana"] == nds["dia_semana"]
+    assert "meio da semana" in r.messages[0]
+    assert f"A ação vai para {nds['dia']} à noite" in r.recommendation_reason
 
 
 def test_regra_7_na_faixa_media_nao_diz_score_baixo(modelo, monkeypatch):

@@ -47,14 +47,6 @@ FONTES: dict[str, dict] = {
         "url": POF_2017,
         "detalhe": AVALIACAO,
     },
-    "guarana_21": {
-        "numero": "Guaraná em 21% das ocasiões de pizza com refrigerante no Brasil (IC95 14% a "
-        "30%); por segmento, ver a fonte de associação",
-        "fonte": _POF_CALCULO,
-        "ano": "2017-18",
-        "url": POF_2017,
-        "detalhe": f"{REPO}/data/referencia/associacao_guarana.json",
-    },
     "classes_86": {
         "numero": "Classes B a D somam 86% das ocasiões; a classe A, 5%",
         "fonte": _POF_CALCULO,
@@ -76,6 +68,29 @@ FONTES: dict[str, dict] = {
         "ano": "2017-18",
         "url": POF_2017,
         "detalhe": f"{REPO}/data/referencia/associacao_guarana.json",
+    },
+    "mapa": {
+        "numero": "Cidades por prioridade: potencial do Occasion Score na população de 20 a 44 "
+        "anos e pizzarias ativas por 100 mil habitantes",
+        "fonte": "Censo 2022 (IBGE) e CNPJ (Receita Federal), cálculo do projeto",
+        "ano": "2022 e 2026",
+        "url": f"{REPO}/docs/relatorios/mapa_oportunidade.md",
+        "detalhe": f"{REPO}/data/referencia/mapa_oportunidade.csv",
+    },
+    "inicio_19_21": {
+        "numero": "70% das ocasiões de pizza com refrigerante começam entre 19h e 21h",
+        "fonte": _POF_CALCULO,
+        "ano": "2017-18",
+        "url": POF_2017,
+        "detalhe": f"{REPO}/data/referencia/associacao_guarana.json",
+    },
+    "radar": {
+        "numero": "Próximas 4 semanas da UF, com feriados e desvio previsto da busca por pizza",
+        "fonte": "Google Trends, feriados nacionais e Open-Meteo; Trend Radar do projeto "
+        "(informativo, sem ganho sobre o baseline)",
+        "ano": "2026",
+        "url": f"{REPO}/docs/relatorios/trend_radar.md",
+        "detalhe": f"{REPO}/data/referencia/radar_alertas.json",
     },
     "zero_worldpanel": {
         "numero": "Refrigerante zero foi de 8,8% para 14,4% do valor da categoria",
@@ -127,7 +142,11 @@ LIMITES: list[str] = [
 
 
 def fontes_da_resposta(
-    regra: int, com_mensagens: bool, com_associacao: bool = False, cita_em_casa: bool = False
+    regra: int,
+    com_mensagens: bool,
+    com_associacao: bool = False,
+    cita_em_casa: bool = False,
+    plano: dict | None = None,
 ) -> list[dict]:
     """Fonte e ano de cada número que aparece numa recomendação."""
     chaves = ["score", "intervalo", "media_populacao", *POR_REGRA.get(regra, [])]
@@ -139,4 +158,13 @@ def fontes_da_resposta(
         chaves.append("em_casa_66")
     if com_mensagens:
         chaves.append("zero_worldpanel")
+    if plano:
+        if plano["onde"]["cidades"]:
+            chaves.append("mapa")
+        if plano["quando"]["horario"]:
+            chaves.append("inicio_19_21")
+        if plano["quando"]["proximas_4_semanas"]:
+            chaves.append("radar")
+        if "associacao" not in chaves and plano["medicao"]["linha_de_base_pct"] is not None:
+            chaves.append("associacao")
     return [{"id": k, **FONTES[k]} for k in chaves]

@@ -57,6 +57,8 @@ EXCLUIDOS = {("faixa_idade", "30-34")}
 # Cortes de classe pela renda do domicílio em salários mínimos (mesmos do Engine).
 CORTES_CLASSE = [(2, "E"), (4, "D"), (10, "C"), (20, "B")]
 _PESSOA_DIA = ["id_pessoa", "dia_registro"]
+# Janela de início da ocasião citada no plano de ativação (hora cheia, inclusive).
+HORARIO_PICO = (19, 21)
 
 
 def _classe(renda_sm: pd.Series) -> pd.Series:
@@ -119,9 +121,11 @@ def ocasioes_pizza(c: pd.DataFrame) -> pd.DataFrame:
         .agg(
             guarana=("guarana_bebida", "max"),
             em_casa=("local_refeicao", lambda s: bool((s == 1).any())),
+            inicio=("hora", "min"),
             **{k: (k, "first") for k in seg},
         )
         .reset_index()
+        .assign(inicio_19_21=lambda d: d["inicio"].astype(int).between(*HORARIO_PICO))
     )
 
 
@@ -144,13 +148,20 @@ def bootstrap(
     setores = np.union1d(refri["id_setor"].unique(), pizza["id_setor"].unique())
     ir, ip = _indices(refri, setores), _indices(pizza, setores)
     g, p = _fatia(refri, "guarana"), _fatia(pizza, "guarana")
-    casa = _fatia(pizza, "em_casa")
+    casa, pico = _fatia(pizza, "em_casa"), _fatia(pizza, "inicio_19_21")
     bs = []
     for _ in range(replicas):
         amostra = rng.integers(0, len(setores), len(setores))
         r = refri.iloc[np.concatenate([ir[i] for i in amostra])]
         z = pizza.iloc[np.concatenate([ip[i] for i in amostra])]
-        bs.append((_fatia(r, "guarana"), _fatia(z, "guarana"), _fatia(z, "em_casa")))
+        bs.append(
+            (
+                _fatia(r, "guarana"),
+                _fatia(z, "guarana"),
+                _fatia(z, "em_casa"),
+                _fatia(z, "inicio_19_21"),
+            )
+        )
     bs = np.array(bs)
     lacuna = bs[:, 0] - bs[:, 1]
 
@@ -163,6 +174,7 @@ def bootstrap(
         "pizza": {"pct": round(p, 1), "ic95": ic(bs[:, 1]), "n": len(pizza)},
         "lacuna_pp": {"valor": round(g - p, 1), "ic95": ic(lacuna)},
         "em_casa": {"pct": round(casa, 1), "ic95": ic(bs[:, 2])},
+        "inicio_19h_21h": {"pct": round(pico, 1), "ic95": ic(bs[:, 3])},
     }
 
 

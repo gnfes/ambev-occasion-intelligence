@@ -60,7 +60,7 @@ from functools import lru_cache
 import numpy as np
 import pandas as pd
 
-from occasion.decisao import associacao, fontes
+from occasion.decisao import associacao, fontes, plano
 from occasion.modelagem import final
 from occasion.modelagem import incerteza as inc
 from occasion.modelagem.tabela import FAIXAS_IDADE, TURNOS
@@ -115,12 +115,6 @@ ROTULO_SEGMENTO = {
     "classe": "classe",
     "faixa_idade": "faixa de idade",
     "sexo": "sexo",
-}
-
-CANAL_TEXTO = {
-    "delivery": "app de delivery",
-    "pizzaria": "pizzaria do bairro",
-    "em_casa": "consumo em casa (inclui delivery; a POF não separa delivery)",
 }
 
 
@@ -188,6 +182,7 @@ class Recomendacao:
     rule: int
     best_moment: dict
     association: dict = field(default_factory=dict)
+    activation_plan: dict | None = None
     class_position: dict = field(default_factory=dict)
     uncertainty: dict = field(default_factory=dict)
     sources: list[dict] = field(default_factory=list)
@@ -240,6 +235,36 @@ def melhor_momento(
         "prob_faixa": ic["prob_faixa"] if ic else None,
         "faixa_estavel": len(set(ic["faixas_ic95"])) == 1 if ic else None,
     }
+
+
+def noite_de_semana(modelo: final.OccasionScore, contexto: Contexto) -> dict:
+    """Noite de segunda a quinta de maior score para o mesmo perfil (regra 5, frequência)."""
+    grade = [
+        Contexto(**{**asdict(contexto), "dia_semana": d, "turno": "noite"}) for d in (1, 2, 3, 4)
+    ]
+    score = modelo.prever(_linhas(modelo, grade))
+    i = int(np.argmax(score))
+    return {
+        "dia_semana": grade[i].dia_semana,
+        "dia": DIAS[grade[i].dia_semana],
+        "occasion_score": round(100 * float(score[i]), 3),
+        "classification": str(modelo.faixa(score[[i]])[0]),
+    }
+
+
+AREA_PERFIL = {
+    "capital": "capital",
+    "resto_rm": "região metropolitana",
+    "interior_urbano": "interior urbano",
+    "rural": "área rural",
+}
+
+
+def _perfil_texto(c: Contexto) -> str:
+    return (
+        f"{c.sexo}, {c.faixa_idade.replace('-', ' a ')} anos, classe {c.classe}, {c.regiao}, "
+        f"{AREA_PERFIL.get(c.tipo_area, c.tipo_area)}"
+    )
 
 
 NOMES_FAIXA = {"alta": "alta", "media": "média", "baixa": "baixa"}
@@ -312,7 +337,7 @@ def avaliar_incerteza(
 
 
 def _mensagens(dia_semana: int, categoria: Categoria) -> list[str]:
-    """Mensagens do momento em que se vai agir (na regra 5, o melhor momento do perfil)."""
+    """Mensagens do momento em que se vai agir (na regra 5, a melhor noite de semana)."""
     if categoria == Categoria.SEM_ATIVACAO:
         return []
     momento = "ritual de fim de semana" if dia_semana in (5, 6, 7) else "pausa no meio da semana"
@@ -496,15 +521,35 @@ def decidir(
         canal=contexto.canal,
     )
 
-    canal = {
-        Categoria.CONVERSAO_ASSOCIACAO: CANAL_TEXTO[contexto.canal or "em_casa"],
-        Categoria.ATIVACAO_DELIVERY: CANAL_TEXTO["delivery"],
-        Categoria.ACAO_PIZZARIA: CANAL_TEXTO["pizzaria"],
-        Categoria.COMBO_EM_CASA: CANAL_TEXTO["em_casa"],
-        Categoria.CRIAR_FREQUENCIA: "criadores de conteúdo (online), depois pizzaria do bairro "
-        "(local)",
-        Categoria.AWARENESS: "criadores de conteúdo do segmento",
-    }.get(categoria)
+    posicao = posicao_na_classe(modelo, score, contexto.classe)
+    # Regra 5: a frequência se cria numa noite de semana (a melhor de segunda a quinta).
+    nds = noite_de_semana(modelo, contexto) if categoria == Categoria.CRIAR_FREQUENCIA else None
+    if nds and nds["classification"] == "baixa":
+        nds = None  # noite de semana fraca: a ação fica no melhor momento do perfil
+    agir = (
+        {"dia_semana": nds["dia_semana"], "dia": nds["dia"], "turno": "noite"}
+        if nds
+        else {"dia_semana": melhor["dia_semana"], "dia": melhor["dia"], "turno": melhor["turno"]}
+        if categoria == Categoria.CRIAR_FREQUENCIA
+        else {
+            "dia_semana": contexto.dia_semana,
+            "dia": DIAS[contexto.dia_semana],
+            "turno": contexto.turno,
+        }
+    )
+    plano_ativacao = plano.montar(
+        categoria=categoria.value,
+        contexto=contexto,
+        perfil_texto=_perfil_texto(contexto),
+        percentil=posicao.get("percentil_na_classe"),
+        lacuna=lacuna,
+        presenca=presenca,
+        tabela=tabela,
+        momento=agir,
+        noite_de_semana=nds,
+        medido=medido,
+    )
+    canal = plano_ativacao["canal"]["valor"] if plano_ativacao else None
 
     momento = f"{DIAS[contexto.dia_semana]}, {contexto.turno}"
     ic = incerto["occasion_score_ic95"]
@@ -536,14 +581,21 @@ def decidir(
         f"na pizza. {_texto_lacuna(lacuna)}. A marca já está na casa; falta ligá-la à pizza.",
         4: "Faixa alta, sem sinal de lacuna nem de baixa presença do Guaraná no segmento: "
         + (
-            f"o canal informado ({CANAL_TEXTO[contexto.canal]}) decide a ação."
+            f"o canal informado ({plano.CANAL_PLANO[contexto.canal]}) decide a ação."
             if contexto.canal
             else "sem canal informado, a ação é para consumo em casa"
             + (f" ({_br(casa)}% das ocasiões são em casa, com delivery incluído)." if casa else ".")
         ),
         5: f"O momento pedido é fraco, mas o mesmo perfil chega à faixa alta em "
         f"{melhor['dia']}, {melhor['turno']} (score {melhor['occasion_score']:.2f}). Há afinidade "
-        "para criar frequência; que a ação gere consumo novo é hipótese (sem dado).",
+        "para criar frequência; que a ação gere consumo novo é hipótese (sem dado)."
+        + (
+            f" A ação vai para {nds['dia']} à noite, a melhor noite de segunda a quinta deste "
+            f"perfil (score {nds['occasion_score']:.2f}, faixa "
+            f"{NOMES_FAIXA[nds['classification']]})."
+            if nds
+            else ""
+        ),
         6: "Faixa média: "
         + (
             f"Guaraná fraco no refrigerante em geral. {_texto_presenca(presenca, ref_br)}."
@@ -560,10 +612,7 @@ def decidir(
             else "Score baixo e sem momento da semana em faixa alta para este perfil."
         ),
     }
-    mensagens = _mensagens(
-        melhor["dia_semana"] if categoria == Categoria.CRIAR_FREQUENCIA else contexto.dia_semana,
-        categoria,
-    )
+    mensagens = _mensagens(agir["dia_semana"], categoria)
     return Recomendacao(
         occasion_score=round(100 * score, 3),
         classification=faixa,
@@ -581,13 +630,15 @@ def decidir(
             "baixa_presenca": presenca,
             "brasil_guarana_refri_geral_pct": ref_br,
         },
-        class_position=posicao_na_classe(modelo, score, contexto.classe),
+        activation_plan=plano_ativacao,
+        class_position=posicao,
         uncertainty=incerto,
         sources=fontes.fontes_da_resposta(
             n,
             com_mensagens=bool(mensagens),
             com_associacao=bool(lacuna or presenca),
             cita_em_casa=contexto.canal is None and casa is not None,
+            plano=plano_ativacao,
         ),
         limitations=list(fontes.LIMITES),
         model_metadata={

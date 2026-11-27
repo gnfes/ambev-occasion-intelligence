@@ -82,7 +82,7 @@ class ContextoEntrada(BaseModel):
     )
     canal: Canal | None = Field(
         default=None,
-        description="canal da ativação; com score alto e sem sinal de associação, escolhe a categoria (regra 4)",
+        description="canal da ativação: escolhe a categoria na regra 4 e o canal da conversão (regra 3) e do plano de ativação",
     )
     versao_modelo: str | None = Field(
         default=None,
@@ -192,6 +192,11 @@ class Recomendacao(BaseModel):
     best_moment: MelhorMomento = Field(description="dia e turno de maior score para o mesmo perfil")
     association: dict = Field(
         description="segmentos do contexto com lacuna de associação ou baixa presença do Guaraná"
+    )
+    activation_plan: dict | None = Field(
+        description="plano da recomendação: para quem, onde (cidades do mapa), quando (horário e "
+        "próximas 4 semanas), canal, mecânica e mensagem (hipóteses) e medição (linha de base, "
+        "sem meta); vazio quando não há ativação"
     )
     class_position: PosicaoClasse = Field(
         description="posição dentro da classe de renda; não muda a regra, serve à expansão B a D"

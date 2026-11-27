@@ -284,6 +284,19 @@ comparações). Quando há baixa presença e lacuna juntas, vale a baixa presen�
 inferida pela fatia do Guaraná, não medida por pesquisa de marca. Para refazer:
 `uv run python -m occasion.decisao.associacao`.
 
+**Plano de ativação** (`activation_plan`, [`decisao/plano.py`](src/occasion/decisao/plano.py)).
+Toda recomendação com ativação sai com um plano. O plano não muda a regra; ele detalha a decisão
+só com dado medido:
+
+| Campo | De onde vem |
+|---|---|
+| Para quem | perfil do contexto, segmento que disparou a regra, percentil na classe |
+| Onde | 3 cidades de maior prioridade do Mapa de Oportunidade na região (capitais se a área é capital; o mapa não separa região metropolitana de interior; área rural fica sem lista) |
+| Quando | dia e turno do contexto; à noite, 19h a 21h (70,4% das ocasiões começam aí, IC95 61,1 a 79,3, POF); na regra 5, a melhor noite de segunda a quinta do perfil; próximas 4 semanas da UF com feriados (Trend Radar, informativo) |
+| Canal | o canal informado; sem canal, "em casa" só onde o IC95 da fatia em casa na região fica acima de 50% (Sudeste e Sul), senão casa e salão |
+| Mecânica e mensagem | uma por categoria, marcadas como hipótese (sem dado de efeito) |
+| Medição | indicador e linha de base do segmento na POF; sem meta, porque não há dado de efeito |
+
 A saída traz também `class_position`: a posição do score entre as pessoas da mesma classe de
 renda (2017-18). Não muda a regra; serve para mirar a expansão B a D sem inflar o score.
 
