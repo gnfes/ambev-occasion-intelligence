@@ -260,8 +260,8 @@ decidida pelo score pontual):
   melhor momento também traz o intervalo. Em 2017-18, a meia largura média do intervalo é 48%
   do score na faixa alta, 62% na média e 97% na baixa.
 - **`uncertainty.prob_faixa` e `faixa_estavel`:** fração das réplicas em cada faixa. Abaixo de
-  80% na faixa do score, a resposta avisa que o resultado está na fronteira (6% das pessoas-turno de
-  2017-18, numa amostra sem peso de 1 em cada 50).
+  80% na faixa do score, a resposta avisa que o resultado está na fronteira (13% do peso das
+  pessoas-turno de 2017-18; 24% na faixa alta e 21% à noite, amostra aleatória de 5%).
 - **`uncertainty.poucos_dados` e `avisos`:** valor de entrada com menos de 30 ocasiões reais nas
   duas edições, ou intervalo largo (limite superior acima de 3× o inferior). A contagem do perfil
   completo (região × área × idade × sexo × classe) vem só como informação: nenhum perfil chega a
