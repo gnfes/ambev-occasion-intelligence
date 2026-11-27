@@ -25,7 +25,8 @@ Desenho (fixado antes de rodar):
   métrica de cada braço como média das sementes em cada réplica.
 
 Regra de decisão (fixada antes): um braço só é útil se, na avaliação,
-(1) PR-AUC > A0 com IC95 acima de zero, (2) PR-AUC > A1, (3) log loss depois
+(1) PR-AUC > A0 com IC95 acima de zero, (2) PR-AUC > A1 com IC95 acima de
+zero, (3) log loss depois
 de Platt não pior que A0, (4) nenhuma região ou classe de renda com recall
 no top 10% pior que A0 com IC95 abaixo de zero. Se A3 não sair pior que A0,
 as métricas não separam bom de ruim e o resultado é inconclusivo.
@@ -84,9 +85,12 @@ class Codificador:
 
     def codigos(self, df: pd.DataFrame) -> np.ndarray:
         """Índice da categoria de cada coluna (n × n_categóricas)."""
-        return np.column_stack(
+        cod = np.column_stack(
             [pd.Categorical(df[c], categories=self.categorias[c]).codes for c in CATS]
         )
+        if (cod < 0).any():
+            raise ValueError("categoria ausente ou desconhecida nas features categóricas")
+        return cod
 
     def renda_z(self, df: pd.DataFrame) -> np.ndarray:
         return ((df[NUM].to_numpy(float) - self.media_renda) / self.dp_renda).astype("float32")
@@ -162,8 +166,11 @@ class SmoteNC:
             raise ValueError("SMOTE-NC só gera a classe minoritária (positivos)")
         from imblearn.over_sampling import SMOTENC
 
+        # Positivos únicos: numa reamostra com reposição os vizinhos mais próximos
+        # seriam cópias da própria linha e o SMOTE devolveria cópias (A2 = A1).
+        # Por isso o SMOTE-NC ignora `peso_final` (limitação registrada no relatório).
         pos = self.real[self.real[ALVO]]
-        base_pos = reamostra_ponderada(pos, len(pos), self.rng)
+        base_pos = pos.reset_index(drop=True)
         # Negativos só cumprem a API (o SMOTE busca vizinhos entre positivos).
         base_neg = reamostra_ponderada(self.real[~self.real[ALVO]], len(pos) + n + 1, self.rng)
         base = pd.concat([base_pos, base_neg], ignore_index=True)
@@ -325,6 +332,8 @@ class VAE:
             return optax.apply_updates(params, upd), estado, valor
 
         n = X.shape[0]
+        if n < self.lote:
+            raise ValueError(f"VAE precisa de pelo menos {self.lote} linhas de treino; recebeu {n}")
         self.historico = []
         for _ in range(self.epocas):
             ordem = rng.permutation(n)
@@ -334,7 +343,7 @@ class VAE:
                 chave, k = jax.random.split(chave)
                 params, estado, v = passo(params, estado, X[j], R[j], C[j], k)
                 soma += float(v)
-            self.historico.append(soma / (n // self.lote))
+            self.historico.append(soma / max(n // self.lote, 1))
         self.params, self.limites, self.d_cat = params, limites, d_cat
         self._chave = jax.random.PRNGKey(semente + 10_000)
         return self
@@ -598,9 +607,9 @@ def rodar(
     sel = t.metades_setor(te) == 0
     ava = ~sel
     te_ava = te[ava].reset_index(drop=True)
-    classes = classe(te["renda_sm"]).astype(str)
+    classes = classe(te["renda_sm"])
     grupos = {f"região {r}": (te["regiao"] == r).to_numpy() for r in te["regiao"].cat.categories}
-    grupos |= {f"classe {c}": (classes == c).to_numpy() for c in sorted(classes.unique())}
+    grupos |= {f"classe {c}": (classes == c).to_numpy() for c in classes.cat.categories}
     grupos_ava = {g: m[ava] for g, m in grupos.items()}
 
     # PCA ajustada só no real (reamostra ponderada do treino do gerador).
@@ -608,7 +617,8 @@ def rodar(
     pca = PCA(n_components=10, random_state=0).fit(
         cod.matriz(reamostra_ponderada(gen_tr, 50_000, rng0))
     )
-    combos_real = _combos(tr, cod)
+    # Suporte medido contra os setores do gerador, igual para sintético e referência.
+    combos_real = _combos(gen_tr, cod)
     hold_cls = {
         k: reamostra_ponderada(hold[hold[ALVO] == bool(k)], N_FIDELIDADE, rng0) for k in (0, 1)
     }
@@ -626,7 +636,7 @@ def rodar(
             "classe": "positivos",
             **fidelidade(tr_cls[1], hold_cls[1], gen_tr, cod, pca, combos_real),
             "copias_pct": _pct_copias(hold_cls[1], gen_tr, cod),
-            "fora_do_suporte_pct": _pct_fora(hold_cls[1], _combos(gen_tr, cod), cod),
+            "fora_do_suporte_pct": _pct_fora(hold_cls[1], combos_real, cod),
         }
     )
     fid.append(
@@ -635,7 +645,7 @@ def rodar(
             "classe": "negativos",
             **fidelidade(tr_cls[0], hold_cls[0], gen_tr, cod, pca, combos_real),
             "copias_pct": _pct_copias(hold_cls[0], gen_tr, cod),
-            "fora_do_suporte_pct": _pct_fora(hold_cls[0], _combos(gen_tr, cod), cod),
+            "fora_do_suporte_pct": _pct_fora(hold_cls[0], combos_real, cod),
         }
     )
     pca_pontos = {"real holdout": pca.transform(cod.matriz(hold_cls[1]))[:, :2]}
@@ -784,6 +794,8 @@ def rodar(
                 ),
                 "útil": all(v is True for v in regra.values()),
                 "_pr_auc_hi": d_pr[2],
+                "_log_loss_lo": d_ll[1],
+                "_grupos_piores": len(piores),
             }
         )
     dif = pd.DataFrame(dif).set_index("braço")
@@ -798,7 +810,10 @@ def rodar(
             if k != "A0 real"
         }
     )
-    rec_a0 = pd.Series({g: bs["recall"][f"A0 real|{g}"].mean() for g in grupos}, name="recall A0")
+    rec_a0 = pd.Series(
+        {g: bs["recall"][f"A0 real|{g}"].mean() for g in grupos}, name="recall A0"
+    ).rename_axis("grupo")
+    rec_grupos = rec_grupos.rename_axis("grupo")
 
     # ---------- figura da PCA
     figura = _figura_pca(pca_pontos, saida / "sintetico_pca.png")
@@ -893,10 +908,14 @@ def _relatorio(
     vae_kwargs,
 ) -> str:
     uteis = dif.index[dif["útil"]].tolist()
+    # Controles ruins (A3, A3b) em todos os modos. "Detectado" = pior que A0 na
+    # qualidade geral: PR-AUC com IC95 abaixo de zero ou log loss com IC95 acima
+    # de zero. Recall por grupo fica de fora porque também cai com a duplicação
+    # de positivos reais (A1), então não separa dado bom de ruim.
     controles = {
-        k: bool(dif.loc[k, "_pr_auc_hi"] < 0)
+        k: bool(dif.loc[k, "_pr_auc_hi"] < 0 or dif.loc[k, "_log_loss_lo"] > 0)
         for k in dif.index
-        if k.startswith("A3") and "positivos" in k
+        if k.startswith("A3")
     }
     a3_pior = any(controles.values())
     conclusao = (
@@ -905,11 +924,13 @@ def _relatorio(
         else f"Braços que passaram na regra: {', '.join(uteis)}. "
     )
     conclusao += (
-        "Controles negativos (IC95 da PR-AUC inteiro abaixo de A0): "
+        "Controles ruins piores que A0 (PR-AUC com IC95 abaixo de zero ou log loss com IC95 "
+        "acima de zero): "
         + ", ".join(f"{k} {'pior' if v else 'não pior'}" for k, v in controles.items())
         + ". "
         + (
-            "Pelo menos um controle ruim foi detectado, então as métricas separam dado bom de ruim."
+            "Pelo menos um controle ruim foi detectado, então as métricas conseguem separar dado bom "
+            "de ruim."
             if a3_pior
             else "Nenhum controle ruim foi detectado: pela regra, o experimento é inconclusivo."
         )
@@ -946,9 +967,16 @@ def _relatorio(
             "Fréchet entre gaussianas nos 10 primeiros componentes da PCA ajustada no real. TV = "
             "variação total (0 a 1). Cópias = linhas iguais a uma linha do treino (categóricas + renda "
             "arredondada a 1 ponto). Fora do suporte = combinação das 6 categóricas que não existe no "
-            "real de 2008-09.\n"
+            "real dos setores do gerador.\n"
         ),
         _md(fid, 3),
+        "",
+        (
+            "Notas do desenho: o SMOTE-NC usa os positivos reais únicos e ignora `peso_final` "
+            "(numa reamostra com reposição os vizinhos seriam cópias da própria linha). O controle "
+            "A3b (rótulo aleatório) foi acrescentado depois do teste curto do código, porque a "
+            "logística é aditiva e A3 (marginais certas por classe) quase não a prejudica.\n"
+        ),
         "",
     ]
     if figura:
@@ -1002,7 +1030,7 @@ def _relatorio(
             "zero; (3) log loss depois de Platt não pior que A0; (4) nenhuma região ou classe de renda "
             "com recall no top 10% pior que A0 com IC95 abaixo de zero.\n"
         ),
-        _md(dif.drop(columns="_pr_auc_hi")),
+        _md(dif.drop(columns=["_pr_auc_hi", "_log_loss_lo", "_grupos_piores"])),
         "\n## Recall no top 10% por grupo\n",
         "Recall de A0 e diferença de cada braço contra A0 [IC95], mesmo corte nacional.\n",
         _md(rec_a0.to_frame(), 3),
