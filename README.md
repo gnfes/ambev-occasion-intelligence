@@ -77,6 +77,7 @@ uv run --group automl python -m occasion.modelagem.candidatos  # candidatos e Au
 uv run python -m occasion.modelagem.final         # modelo do app (models/)
 uv run python -m occasion.modelagem.incerteza     # 200 réplicas do bootstrap para o IC95 (~10 min)
 uv run python -m occasion.modelagem.avaliacao     # importância, faixas, segmentos e erros
+uv run --group sintetico --group eda python -m occasion.modelagem.sintetico  # teste de dados sintéticos (~40 min)
 ```
 
 Os relatórios gerados ficam em `data/processed/`; as cópias usadas nesta entrega estão em
@@ -228,6 +229,17 @@ Validação temporal (treino 2008-09, teste 2017-18, pesos da POF com cada dia d
 Relatórios completos: [experimentos](docs/relatorios/experimentos_occasion_score.md),
 [candidatos](docs/relatorios/candidatos_occasion_score.md),
 [avaliação, segmentos e erros](docs/relatorios/avaliacao_occasion_score.md).
+
+**Dados sintéticos (teste controlado).** Testamos se somar linhas sintéticas ao treino de
+2008-09 melhora o modelo em 2017-18. Comparamos VAE tabular condicional e mistura ponderada com
+duplicação de positivos, SMOTE-NC, marginais independentes e rótulo aleatório, em 5 sementes,
+com escolha numa metade dos setores e medida na outra. Nenhum braço passou na regra fixada
+antes. Os melhores ficaram a até +0,0012 de PR-AUC do modelo só com dado real (0,0274), sem
+IC95 acima de zero, e o VAE não superou nem o rótulo aleatório. O SMOTE-NC liderou na metade de
+seleção (0,0349 contra 0,0316) e caiu na de avaliação (0,0239), o caso clássico de mais dado
+que não é dado melhor. Quase todo braço com positivos extras piorou o recall no top 10% do
+Nordeste e da classe D. O modelo servido não mudou. Relatório:
+[dados sintéticos](docs/relatorios/dados_sinteticos.md).
 
 ## Decision Engine
 
