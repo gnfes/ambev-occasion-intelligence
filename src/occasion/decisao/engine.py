@@ -204,7 +204,7 @@ def melhor_momento(
         "occasion_score_ic95": ic["ic95"] if ic else None,
         "classification": faixa,
         "prob_faixa": ic["prob_faixa"] if ic else None,
-        "faixa_estavel": ic["prob_faixa"][faixa] >= inc.ESTABILIDADE_MIN if ic else None,
+        "faixa_estavel": len(set(ic["faixas_ic95"])) == 1 if ic else None,
     }
 
 
@@ -256,17 +256,13 @@ def avaliar_incerteza(
                 f"{e['ocasioes']} ocasiões nas duas edições."
             )
     lo, hi = ic["ic95"]
-    if lo <= 0 or hi / lo > inc.RAZAO_IC_MAX:
-        poucos = True
-        avisos.append(
-            f"Poucos dados para esta combinação: o intervalo vai de {_num(lo)} a {_num(hi)}, e o "
-            f"limite superior passa de {inc.RAZAO_IC_MAX:.0f}× o inferior."
-        )
-    estavel = ic["prob_faixa"][faixa] >= inc.ESTABILIDADE_MIN
+    f_lo, f_hi = ic["faixas_ic95"]
+    estavel = f_lo == f_hi
     if not estavel:
         avisos.append(
-            f"Faixa na fronteira: o score cai na faixa {NOMES_FAIXA[faixa]} em "
-            f"{100 * ic['prob_faixa'][faixa]:.0f}% das reamostragens."
+            f"Faixa incerta: o intervalo vai de {_num(lo)} (faixa {NOMES_FAIXA[f_lo]}) a "
+            f"{_num(hi)} (faixa {NOMES_FAIXA[f_hi]}); o score fica na faixa "
+            f"{NOMES_FAIXA[faixa]} em {100 * ic['prob_faixa'][faixa]:.0f}% das reamostragens."
         )
     meta = incerteza.metadata
     return {
@@ -365,15 +361,15 @@ def decidir(
     )
     if incerto["faixa_estavel"] is False:
         base += (
-            f" Atenção: a faixa {NOMES_FAIXA[faixa]} aparece em só "
-            f"{100 * incerto['prob_faixa'][faixa]:.0f}% das reamostragens; a regra usa o score "
+            f" Atenção: o intervalo cruza um corte de faixa (faixa {NOMES_FAIXA[faixa]} em "
+            f"{100 * incerto['prob_faixa'][faixa]:.0f}% das reamostragens); a regra usa o score "
             "pontual."
         )
     if n == 3 and melhor["faixa_estavel"] is False:
         base += (
-            f" Atenção: o melhor momento fica na faixa alta em só "
-            f"{100 * melhor['prob_faixa']['alta']:.0f}% das reamostragens; a regra 3 usa o score "
-            "pontual."
+            f" Atenção: o intervalo do melhor momento cruza o corte da faixa alta (alta em "
+            f"{100 * melhor['prob_faixa']['alta']:.0f}% das reamostragens); a regra 3 usa o "
+            "score pontual."
         )
     motivos = {
         1: "Faixa baixa fora da noite: 93% das ocasiões de pizza com refrigerante são à noite.",

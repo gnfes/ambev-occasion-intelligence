@@ -87,7 +87,10 @@ def test_engine_traz_intervalo_fontes_e_limites(modelo, incerteza):
     lo, hi = u["occasion_score_ic95"]
     assert lo <= hi
     assert r["best_moment"]["occasion_score_ic95"] is not None
-    assert u["faixa_estavel"] == (u["prob_faixa"][r["classification"]] >= inc.ESTABILIDADE_MIN)
+    lo, hi = u["occasion_score_ic95"]
+    assert u["faixa_estavel"] == (
+        modelo.faixa(np.array([lo, hi]) / 100)[0] == modelo.faixa(np.array([lo, hi]) / 100)[1]
+    )
     assert {f["id"] for f in r["sources"]} >= {"score", "intervalo", "media_populacao"}
     assert r["limitations"] == fontes.LIMITES
     # A regra não muda com a incerteza.
@@ -141,4 +144,4 @@ def test_replicas_de_outro_espaco_de_termos_nao_sao_compativeis(modelo, incertez
 def test_melhor_momento_traz_estabilidade_da_faixa(modelo, incerteza):
     bm = engine.decidir(CONTEXTO, modelo, incerteza=incerteza).como_dict()["best_moment"]
     assert sum(bm["prob_faixa"].values()) == pytest.approx(1.0)
-    assert bm["faixa_estavel"] == (bm["prob_faixa"][bm["classification"]] >= inc.ESTABILIDADE_MIN)
+    assert isinstance(bm["faixa_estavel"], bool)

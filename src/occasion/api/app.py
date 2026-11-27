@@ -149,7 +149,7 @@ class Incerteza(BaseModel):
         description="fração das réplicas do bootstrap em cada faixa"
     )
     faixa_estavel: bool | None = Field(
-        description="a faixa do score pontual aparece em pelo menos 80% das réplicas"
+        description="o IC95 fica dentro de uma só faixa (não cruza um corte)"
     )
     poucos_dados: bool | None
     avisos: list[str]

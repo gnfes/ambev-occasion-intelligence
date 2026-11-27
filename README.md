@@ -259,14 +259,18 @@ decidida pelo score pontual):
   Sem reamostragem, a réplica reproduz o modelo servido (diferença de 6×10⁻⁷ no logit). O
   melhor momento também traz o intervalo. Em 2017-18, a meia largura média do intervalo é 48%
   do score na faixa alta, 62% na média e 97% na baixa.
-- **`uncertainty.prob_faixa` e `faixa_estavel`:** fração das réplicas em cada faixa. Abaixo de
-  80% na faixa do score, a resposta avisa que o resultado está na fronteira (13% do peso das
-  pessoas-turno de 2017-18; 24% na faixa alta e 21% à noite, amostra aleatória de 5%).
+- **`uncertainty.faixa_estavel` e `prob_faixa`:** quando o IC95 cruza um corte de faixa, a
+  incerteza pode mudar a faixa e, com ela, a recomendação, e a resposta avisa "faixa incerta".
+  A regra não cria limite novo: usa os cortes de 10% e 30% e o nível de 95%. Em 2017-18 (amostra
+  aleatória ponderada de 5%), o aviso aparece em 46% dos casos da faixa alta, 54% da média e 49%
+  das noites. É o tamanho real da incerteza com 811 ocasiões. `prob_faixa` traz a fração das
+  réplicas em cada faixa.
 - **`uncertainty.poucos_dados` e `avisos`:** valor de entrada com menos de 30 ocasiões reais nas
-  duas edições, ou intervalo largo (limite superior acima de 3× o inferior). A contagem do perfil
+  duas edições. Com 30 eventos, o erro relativo de uma taxa fica perto de 1/√30 = 18% (IC95
+  ±36%); hoje nenhum valor fica abaixo (o menor é a manhã, com 35). A contagem do perfil
   completo (região × área × idade × sexo × classe) vem só como informação: nenhum perfil chega a
   20 ocasiões, porque o modelo soma o efeito de cada variável em vez de depender da combinação
-  exata. Os limites de 30, 3× e 80% são convenção do projeto, não vêm de dado.
+  exata.
 - **`sources`:** fonte, ano e link de cada número da justificativa.
 - **`limitations`:** o que o modelo não sabe (dado de 2017-18, sem data nem clima, sem preço,
   sem separar delivery, alvo com qualquer refrigerante, associação e não causa).

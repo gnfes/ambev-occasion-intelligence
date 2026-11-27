@@ -28,8 +28,10 @@ de hábito desde 2017-18 nem erro de especificação do modelo.
 Suporte: ocasiões reais (sem peso) nas duas edições para o perfil (região ×
 tipo de área × faixa de idade × sexo × classe de renda) e para cada valor de
 entrada. O aviso de "poucos dados" vem do valor de entrada com menos de 30
-ocasiões ou do intervalo largo (limite superior acima de 3× o inferior);
-esses limites são convenção do projeto, não vêm de dado. A contagem do
+ocasiões (erro relativo da taxa perto de 1/√30 = 18%, IC95 ±36%). O aviso de
+"faixa incerta" vem do IC95 que cruza um corte de faixa: a incerteza pode
+mudar a faixa e, com ela, a recomendação. Não há limite inventado: a regra
+usa os cortes das faixas e o nível de 95%. A contagem do
 perfil é só informativa: nenhum perfil completo de 2017-18 chega a 20
 ocasiões (2% do peso da população tem perfil com 10 ou mais), porque o
 modelo é aditivo e soma o efeito de cada variável em vez de depender da
@@ -60,8 +62,6 @@ SEMENTE = 2026
 
 # Convenções do aviso (não vêm de dado; documentadas no README e na resposta).
 MIN_OCASIOES_ENTRADA = 30
-RAZAO_IC_MAX = 3.0
-ESTABILIDADE_MIN = 0.80
 
 PERFIL = ["regiao", "tipo_area", "faixa_idade", "sexo", "classe"]
 ENTRADAS = ["turno", "dia_semana", "regiao", "tipo_area", "faixa_idade", "sexo", "classe"]
@@ -235,6 +235,8 @@ class Incerteza:
                     # limite inferior na faixa baixa e dispararia o aviso de intervalo largo.
                     "ic95": [_sig(100 * lo[j]), _sig(100 * hi[j])],
                     "prob_faixa": {f: round(float(np.mean(faixa == f)), 3) for f in FAIXAS},
+                    # Faixa dos dois limites: se diferem, o IC95 cruza um corte.
+                    "faixas_ic95": [str(f) for f in modelo.faixa(np.array([lo[j], hi[j]]))],
                 }
             )
         return saida
@@ -314,10 +316,11 @@ def metadata(modelo: final.OccasionScore, n: int, semente: int) -> dict:
         "nao_cobre": "mudança de hábito desde 2017-18 e erro de especificação do modelo",
         "avisos": {
             "min_ocasioes_entrada": MIN_OCASIOES_ENTRADA,
-            "razao_ic_max": RAZAO_IC_MAX,
-            "estabilidade_min_faixa": ESTABILIDADE_MIN,
-            "nota": "limites por convenção do projeto, não estimados de dado; a contagem do "
-            "perfil é informativa (nenhum perfil completo chega a 20 ocasiões)",
+            "faixa_incerta": "o IC95 cruza um corte de faixa (a incerteza pode mudar a faixa "
+            "e a recomendação); usa só os cortes de 10% e 30% e o nível de 95%",
+            "nota": "o mínimo de 30 ocasiões dá erro relativo de cerca de 1/√30 = 18% na taxa "
+            "(IC95 ±36%); a contagem do perfil é informativa (nenhum perfil completo chega a "
+            "20 ocasiões)",
         },
         "perfil": PERFIL,
     }
