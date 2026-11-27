@@ -1,0 +1,802 @@
+{
+ "fonte": "POF 2017-18 (IBGE, microdados de consumo alimentar), cálculo do projeto",
+ "publico": "20 a 44 anos",
+ "metodo": "Fatia do Guaraná ponderada (peso amostral, cada dia da semana com 1/7); IC95 por bootstrap conjunto de setores censitários (1000 réplicas, semente 2026).",
+ "criterios": {
+  "lacuna": "IC95 de (geral − pizza) acima de zero e ≥ 60 ocasiões de pizza",
+  "baixa_presenca": "IC95 da fatia no refrigerante em geral inteiro abaixo do IC95 nacional (sem sobreposição)",
+  "excluidos": [
+   "faixa_idade = 30-34"
+  ]
+ },
+ "brasil": {
+  "refri_geral": {
+   "pct": 25.3,
+   "ic95": [
+    22.8,
+    27.8
+   ],
+   "n": 7625
+  },
+  "pizza": {
+   "pct": 21.1,
+   "ic95": [
+    14.0,
+    29.6
+   ],
+   "n": 444
+  },
+  "lacuna_pp": {
+   "valor": 4.3,
+   "ic95": [
+    -3.5,
+    11.3
+   ]
+  },
+  "em_casa": {
+   "pct": 65.9,
+   "ic95": [
+    57.4,
+    74.5
+   ]
+  }
+ },
+ "segmentos": [
+  {
+   "dimensao": "regiao",
+   "valor": "Centro-Oeste",
+   "refri_geral": {
+    "pct": 26.9,
+    "ic95": [
+     21.0,
+     33.5
+    ],
+    "n": 1128
+   },
+   "pizza": {
+    "pct": 24.6,
+    "ic95": [
+     10.3,
+     42.0
+    ],
+    "n": 58
+   },
+   "lacuna_pp": {
+    "valor": 2.2,
+    "ic95": [
+     -15.3,
+     16.7
+    ]
+   },
+   "em_casa": {
+    "pct": 54.5,
+    "ic95": [
+     34.5,
+     74.4
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "regiao",
+   "valor": "Nordeste",
+   "refri_geral": {
+    "pct": 30.2,
+    "ic95": [
+     26.6,
+     34.1
+    ],
+    "n": 2240
+   },
+   "pizza": {
+    "pct": 16.3,
+    "ic95": [
+     10.1,
+     24.6
+    ],
+    "n": 147
+   },
+   "lacuna_pp": {
+    "valor": 13.9,
+    "ic95": [
+     5.8,
+     20.7
+    ]
+   },
+   "em_casa": {
+    "pct": 57.9,
+    "ic95": [
+     45.0,
+     69.7
+    ]
+   },
+   "lacuna": true,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "regiao",
+   "valor": "Norte",
+   "refri_geral": {
+    "pct": 34.0,
+    "ic95": [
+     23.6,
+     45.5
+    ],
+    "n": 1038
+   },
+   "pizza": {
+    "pct": 7.8,
+    "ic95": [
+     2.3,
+     18.5
+    ],
+    "n": 63
+   },
+   "lacuna_pp": {
+    "valor": 26.2,
+    "ic95": [
+     12.7,
+     39.3
+    ]
+   },
+   "em_casa": {
+    "pct": 35.0,
+    "ic95": [
+     15.7,
+     64.5
+    ]
+   },
+   "lacuna": true,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "regiao",
+   "valor": "Sudeste",
+   "refri_geral": {
+    "pct": 24.9,
+    "ic95": [
+     20.5,
+     29.7
+    ],
+    "n": 1808
+   },
+   "pizza": {
+    "pct": 24.6,
+    "ic95": [
+     10.5,
+     41.9
+    ],
+    "n": 95
+   },
+   "lacuna_pp": {
+    "valor": 0.3,
+    "ic95": [
+     -16.8,
+     14.4
+    ]
+   },
+   "em_casa": {
+    "pct": 74.9,
+    "ic95": [
+     56.2,
+     90.2
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "regiao",
+   "valor": "Sul",
+   "refri_geral": {
+    "pct": 17.6,
+    "ic95": [
+     13.8,
+     22.3
+    ],
+    "n": 1411
+   },
+   "pizza": {
+    "pct": 21.9,
+    "ic95": [
+     9.1,
+     37.8
+    ],
+    "n": 81
+   },
+   "lacuna_pp": {
+    "valor": -4.4,
+    "ic95": [
+     -19.0,
+     7.4
+    ]
+   },
+   "em_casa": {
+    "pct": 71.6,
+    "ic95": [
+     55.4,
+     85.3
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": true
+  },
+  {
+   "dimensao": "tipo_area",
+   "valor": "capital",
+   "refri_geral": {
+    "pct": 20.9,
+    "ic95": [
+     16.7,
+     25.2
+    ],
+    "n": 2049
+   },
+   "pizza": {
+    "pct": 11.6,
+    "ic95": [
+     6.0,
+     18.4
+    ],
+    "n": 163
+   },
+   "lacuna_pp": {
+    "valor": 9.3,
+    "ic95": [
+     1.7,
+     15.5
+    ]
+   },
+   "em_casa": {
+    "pct": 66.4,
+    "ic95": [
+     54.0,
+     78.6
+    ]
+   },
+   "lacuna": true,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "tipo_area",
+   "valor": "interior_urbano",
+   "refri_geral": {
+    "pct": 27.2,
+    "ic95": [
+     23.5,
+     31.0
+    ],
+    "n": 3414
+   },
+   "pizza": {
+    "pct": 27.6,
+    "ic95": [
+     15.0,
+     43.1
+    ],
+    "n": 175
+   },
+   "lacuna_pp": {
+    "valor": -0.4,
+    "ic95": [
+     -15.3,
+     12.2
+    ]
+   },
+   "em_casa": {
+    "pct": 57.5,
+    "ic95": [
+     40.9,
+     73.2
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "tipo_area",
+   "valor": "resto_rm",
+   "refri_geral": {
+    "pct": 25.8,
+    "ic95": [
+     19.3,
+     33.2
+    ],
+    "n": 945
+   },
+   "pizza": {
+    "pct": 27.7,
+    "ic95": [
+     10.4,
+     48.1
+    ],
+    "n": 73
+   },
+   "lacuna_pp": {
+    "valor": -2.0,
+    "ic95": [
+     -21.8,
+     15.8
+    ]
+   },
+   "em_casa": {
+    "pct": 78.8,
+    "ic95": [
+     61.6,
+     90.5
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "tipo_area",
+   "valor": "rural",
+   "refri_geral": {
+    "pct": 30.2,
+    "ic95": [
+     24.7,
+     35.8
+    ],
+    "n": 1217
+   },
+   "pizza": {
+    "pct": 11.3,
+    "ic95": [
+     0.9,
+     28.8
+    ],
+    "n": 33
+   },
+   "lacuna_pp": {
+    "valor": 18.8,
+    "ic95": [
+     2.4,
+     30.6
+    ]
+   },
+   "em_casa": {
+    "pct": 82.3,
+    "ic95": [
+     58.5,
+     94.8
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "classe",
+   "valor": "A",
+   "refri_geral": {
+    "pct": 22.0,
+    "ic95": [
+     12.1,
+     31.5
+    ],
+    "n": 217
+   },
+   "pizza": {
+    "pct": 11.6,
+    "ic95": [
+     0.0,
+     32.0
+    ],
+    "n": 14
+   },
+   "lacuna_pp": {
+    "valor": 10.4,
+    "ic95": [
+     -11.1,
+     25.5
+    ]
+   },
+   "em_casa": {
+    "pct": 82.7,
+    "ic95": [
+     53.3,
+     100.0
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "classe",
+   "valor": "B",
+   "refri_geral": {
+    "pct": 14.2,
+    "ic95": [
+     10.1,
+     19.8
+    ],
+    "n": 711
+   },
+   "pizza": {
+    "pct": 21.8,
+    "ic95": [
+     6.7,
+     40.8
+    ],
+    "n": 65
+   },
+   "lacuna_pp": {
+    "valor": -7.6,
+    "ic95": [
+     -25.4,
+     7.1
+    ]
+   },
+   "em_casa": {
+    "pct": 67.7,
+    "ic95": [
+     48.1,
+     83.3
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": true
+  },
+  {
+   "dimensao": "classe",
+   "valor": "C",
+   "refri_geral": {
+    "pct": 26.0,
+    "ic95": [
+     21.8,
+     30.9
+    ],
+    "n": 2950
+   },
+   "pizza": {
+    "pct": 25.0,
+    "ic95": [
+     14.4,
+     38.1
+    ],
+    "n": 209
+   },
+   "lacuna_pp": {
+    "valor": 1.0,
+    "ic95": [
+     -11.8,
+     12.3
+    ]
+   },
+   "em_casa": {
+    "pct": 71.9,
+    "ic95": [
+     61.3,
+     82.2
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "classe",
+   "valor": "D",
+   "refri_geral": {
+    "pct": 29.8,
+    "ic95": [
+     25.2,
+     34.9
+    ],
+    "n": 2539
+   },
+   "pizza": {
+    "pct": 19.9,
+    "ic95": [
+     10.4,
+     31.3
+    ],
+    "n": 112
+   },
+   "lacuna_pp": {
+    "valor": 10.0,
+    "ic95": [
+     -2.0,
+     20.9
+    ]
+   },
+   "em_casa": {
+    "pct": 65.5,
+    "ic95": [
+     50.9,
+     78.8
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "classe",
+   "valor": "E",
+   "refri_geral": {
+    "pct": 24.1,
+    "ic95": [
+     19.3,
+     29.5
+    ],
+    "n": 1208
+   },
+   "pizza": {
+    "pct": 5.0,
+    "ic95": [
+     0.0,
+     16.1
+    ],
+    "n": 44
+   },
+   "lacuna_pp": {
+    "valor": 19.1,
+    "ic95": [
+     7.0,
+     25.9
+    ]
+   },
+   "em_casa": {
+    "pct": 27.3,
+    "ic95": [
+     10.1,
+     67.1
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "faixa_idade",
+   "valor": "20-24",
+   "refri_geral": {
+    "pct": 22.7,
+    "ic95": [
+     18.9,
+     27.2
+    ],
+    "n": 1906
+   },
+   "pizza": {
+    "pct": 19.5,
+    "ic95": [
+     7.5,
+     34.7
+    ],
+    "n": 97
+   },
+   "lacuna_pp": {
+    "valor": 3.2,
+    "ic95": [
+     -10.8,
+     15.8
+    ]
+   },
+   "em_casa": {
+    "pct": 58.8,
+    "ic95": [
+     41.3,
+     75.9
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "faixa_idade",
+   "valor": "25-29",
+   "refri_geral": {
+    "pct": 24.1,
+    "ic95": [
+     20.2,
+     28.3
+    ],
+    "n": 1497
+   },
+   "pizza": {
+    "pct": 19.2,
+    "ic95": [
+     10.9,
+     28.2
+    ],
+    "n": 103
+   },
+   "lacuna_pp": {
+    "valor": 4.9,
+    "ic95": [
+     -4.0,
+     13.2
+    ]
+   },
+   "em_casa": {
+    "pct": 64.9,
+    "ic95": [
+     50.9,
+     77.7
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "faixa_idade",
+   "valor": "30-34",
+   "refri_geral": {
+    "pct": 21.9,
+    "ic95": [
+     18.0,
+     26.6
+    ],
+    "n": 1557
+   },
+   "pizza": {
+    "pct": 11.5,
+    "ic95": [
+     5.5,
+     21.2
+    ],
+    "n": 82
+   },
+   "lacuna_pp": {
+    "valor": 10.4,
+    "ic95": [
+     0.8,
+     17.6
+    ]
+   },
+   "em_casa": {
+    "pct": 57.9,
+    "ic95": [
+     41.7,
+     79.4
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "faixa_idade",
+   "valor": "35-39",
+   "refri_geral": {
+    "pct": 31.0,
+    "ic95": [
+     25.1,
+     37.6
+    ],
+    "n": 1440
+   },
+   "pizza": {
+    "pct": 27.8,
+    "ic95": [
+     12.4,
+     44.3
+    ],
+    "n": 100
+   },
+   "lacuna_pp": {
+    "valor": 3.2,
+    "ic95": [
+     -12.2,
+     19.0
+    ]
+   },
+   "em_casa": {
+    "pct": 71.1,
+    "ic95": [
+     56.7,
+     83.6
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "faixa_idade",
+   "valor": "40-44",
+   "refri_geral": {
+    "pct": 28.1,
+    "ic95": [
+     21.9,
+     34.9
+    ],
+    "n": 1225
+   },
+   "pizza": {
+    "pct": 28.5,
+    "ic95": [
+     7.4,
+     49.2
+    ],
+    "n": 62
+   },
+   "lacuna_pp": {
+    "valor": -0.4,
+    "ic95": [
+     -20.6,
+     21.5
+    ]
+   },
+   "em_casa": {
+    "pct": 81.3,
+    "ic95": [
+     67.3,
+     90.9
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "sexo",
+   "valor": "homem",
+   "refri_geral": {
+    "pct": 24.3,
+    "ic95": [
+     21.2,
+     27.7
+    ],
+    "n": 3807
+   },
+   "pizza": {
+    "pct": 19.0,
+    "ic95": [
+     11.1,
+     28.1
+    ],
+    "n": 214
+   },
+   "lacuna_pp": {
+    "valor": 5.3,
+    "ic95": [
+     -3.4,
+     13.7
+    ]
+   },
+   "em_casa": {
+    "pct": 62.0,
+    "ic95": [
+     51.1,
+     72.0
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  },
+  {
+   "dimensao": "sexo",
+   "valor": "mulher",
+   "refri_geral": {
+    "pct": 26.5,
+    "ic95": [
+     23.7,
+     29.4
+    ],
+    "n": 3818
+   },
+   "pizza": {
+    "pct": 23.6,
+    "ic95": [
+     15.3,
+     33.7
+    ],
+    "n": 230
+   },
+   "lacuna_pp": {
+    "valor": 2.9,
+    "ic95": [
+     -7.0,
+     11.2
+    ]
+   },
+   "em_casa": {
+    "pct": 70.7,
+    "ic95": [
+     60.5,
+     79.7
+    ]
+   },
+   "lacuna": false,
+   "baixa_presenca": false
+  }
+ ]
+}

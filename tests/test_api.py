@@ -60,7 +60,8 @@ def test_predict_segue_o_contrato_e_o_engine(cliente):
     replicas = api._ler_incerteza(api._caminho_incerteza(), modelo)
     esperado = engine.decidir(engine.Contexto(**ENTRADA), modelo, incerteza=replicas).como_dict()
     assert corpo == esperado
-    assert corpo["recommendation_channel"] == "app de delivery"
+    # Capital tem lacuna de associação na tabela gravada: o sinal chega à resposta.
+    assert "tipo de área = capital" in {x["segmento"] for x in corpo["association"]["lacuna"]}
     assert len(corpo["top_factors"]) == 3
 
 

@@ -122,8 +122,10 @@ def test_perfil_sem_ocasioes_e_informativo_e_entrada_rara_avisa(modelo, incertez
 
 
 def test_fontes_por_regra():
-    ids = {f["id"] for f in fontes.fontes_da_resposta(2, com_mensagens=True)}
-    assert {"guarana_21", "zero_worldpanel"} <= ids
+    ids = {f["id"] for f in fontes.fontes_da_resposta(3, com_mensagens=True, com_associacao=True)}
+    assert {"associacao", "zero_worldpanel"} <= ids
+    ids = {f["id"] for f in fontes.fontes_da_resposta(4, com_mensagens=True, sem_canal=True)}
+    assert "em_casa_66" in ids
     for f in fontes.FONTES.values():
         assert f["ano"] and f["url"].startswith("https://")
 

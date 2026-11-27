@@ -49,7 +49,7 @@ with st.sidebar:
         "Canal da ativação",
         [None, *op["canal"]],
         format_func=R.CANAIS.get,
-        help="Só muda o canal quando a recomendação é de conversão (regra 2).",
+        help="Com score alto e sem sinal de associação no segmento, o canal escolhe a categoria (regra 4).",
     )
 
 entrada = {
@@ -191,6 +191,14 @@ with esq:
     if r["recommendation_channel"]:
         st.markdown(f"**Canal:** {r['recommendation_channel']}")
     st.markdown(f"**Por quê:** {r['recommendation_reason']}")
+    assoc = r.get("association") or {}
+    for chave, titulo in (("lacuna", "Lacuna de associação"), ("baixa_presenca", "Baixa presença")):
+        for seg in assoc.get(chave, []):
+            st.caption(
+                f"{titulo} em {seg['segmento']}: Guaraná em {num(seg['guarana_refri_geral_pct'])}% "
+                f"do refrigerante em geral e {num(seg['guarana_na_pizza_pct'])}% na pizza "
+                f"({seg['ocasioes_pizza']} ocasiões de pizza, POF 2017-18)."
+            )
     if r["messages"]:
         st.markdown("**Mensagens sugeridas**")
         for m in r["messages"]:

@@ -61,6 +61,21 @@ FONTES: dict[str, dict] = {
         "url": POF_2017,
         "detalhe": AVALIACAO,
     },
+    "associacao": {
+        "numero": "Fatia do Guaraná no refrigerante em geral e na pizza por segmento (lacuna de "
+        "associação e baixa presença da marca)",
+        "fonte": _POF_CALCULO + "; bootstrap por setor, critérios em decisao/associacao.py",
+        "ano": "2017-18",
+        "url": POF_2017,
+        "detalhe": f"{REPO}/data/referencia/associacao_guarana.json",
+    },
+    "em_casa_66": {
+        "numero": "66% das ocasiões de pizza com refrigerante são em casa (delivery incluído)",
+        "fonte": _POF_CALCULO,
+        "ano": "2017-18",
+        "url": POF_2017,
+        "detalhe": f"{REPO}/data/referencia/associacao_guarana.json",
+    },
     "zero_worldpanel": {
         "numero": "Refrigerante zero foi de 8,8% para 14,4% do valor da categoria",
         "fonte": "Worldpanel by Numerator, Consumer Insights 3º tri 2025, citado por "
@@ -75,10 +90,12 @@ FONTES: dict[str, dict] = {
 # Números citados por regra (além do score, do intervalo e da média, sempre presentes).
 POR_REGRA: dict[int, list[str]] = {
     1: ["noite_93"],
-    2: ["guarana_21"],
+    2: [],
     3: [],
-    4: ["classes_86"],
+    4: [],
     5: [],
+    6: [],
+    7: [],
 }
 
 LIMITES: list[str] = [
@@ -93,8 +110,9 @@ LIMITES: list[str] = [
     "Sem preço, promoção ou ponto de venda: o score não mede o efeito de uma oferta.",
     "A POF não separa delivery: comida pedida em casa conta como consumo em casa.",
     (
-        "O alvo é pizza com qualquer refrigerante. A fatia do Guaraná (21%) não difere entre "
-        "segmentos, então o score não diz onde o Guaraná perde para outra marca."
+        "O alvo é pizza com qualquer refrigerante: o score não diz onde o Guaraná perde para outra "
+        "marca. Isso entra no Engine pela associação por segmento, inferida pela fatia do Guaraná "
+        "na POF (não é pesquisa de marca), com amostra pequena na pizza."
     ),
     (
         "É associação, não causa: o score diz onde a ocasião acontece, não que uma ação vai criar "
@@ -107,9 +125,17 @@ LIMITES: list[str] = [
 ]
 
 
-def fontes_da_resposta(regra: int, com_mensagens: bool) -> list[dict]:
+def fontes_da_resposta(
+    regra: int, com_mensagens: bool, com_associacao: bool = False, sem_canal: bool = False
+) -> list[dict]:
     """Fonte e ano de cada número que aparece numa recomendação."""
     chaves = ["score", "intervalo", "media_populacao", *POR_REGRA.get(regra, [])]
+    if regra in (2, 3, 6) and com_associacao:
+        chaves.append("associacao")
+    if regra == 6 and not com_associacao:
+        chaves.append("classes_86")
+    if regra == 4 and sem_canal:
+        chaves.append("em_casa_66")
     if com_mensagens:
         chaves.append("zero_worldpanel")
     return [{"id": k, **FONTES[k]} for k in chaves]
