@@ -105,7 +105,7 @@ def test_lacuna_aparece_na_justificativa_e_nas_fontes(modelo):
     assert r.rule == 3
     assert r.recommendation_channel == "app de delivery"
     assert r.recommendation_reason.startswith("Regra 3.")
-    assert "região = Nordeste" in r.recommendation_reason
+    assert "No Nordeste, o Guaraná está em 30,2%" in r.recommendation_reason
     assert {s["segmento"] for s in r.association["lacuna"]} == {
         "região = Nordeste",
         "tipo de área = capital",

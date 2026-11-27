@@ -373,9 +373,31 @@ def _segmentos(contexto: Contexto) -> dict[str, str]:
     }
 
 
+AREA_TEXTO = {
+    "capital": "nas capitais",
+    "resto_rm": "no resto das regiões metropolitanas",
+    "interior_urbano": "no interior urbano",
+    "rural": "na área rural",
+}
+
+
+def _segmento_texto(dimensao: str, valor: str) -> str:
+    """Segmento em português corrido ("no Nordeste", "na classe B")."""
+    if dimensao == "regiao":
+        return f"no {valor}"
+    if dimensao == "tipo_area":
+        return AREA_TEXTO.get(valor, valor)
+    if dimensao == "classe":
+        return f"na classe {valor}"
+    if dimensao == "faixa_idade":
+        return f"na faixa de {valor.replace('-', ' a ')} anos"
+    return f"entre {valor}s" if dimensao == "sexo" else f"{dimensao} = {valor}"
+
+
 def _resumo_segmento(s: dict) -> dict:
     return {
         "segmento": f"{ROTULO_SEGMENTO[s['dimensao']]} = {s['valor']}",
+        "segmento_texto": _segmento_texto(s["dimensao"], s["valor"]),
         "guarana_refri_geral_pct": s["refri_geral"]["pct"],
         "guarana_refri_geral_ic95": s["refri_geral"]["ic95"],
         "guarana_na_pizza_pct": s["pizza"]["pct"],
@@ -391,10 +413,10 @@ def _br(x: float) -> str:
 
 
 def _texto_lacuna(segs: list[dict]) -> str:
-    return "; ".join(
-        f"{s['segmento']}: Guaraná em {_br(s['guarana_refri_geral_pct'])}% do refrigerante em "
-        f"geral e {_br(s['guarana_na_pizza_pct'])}% na pizza (lacuna de "
-        f"{_br(s['lacuna_pp'])} pontos, IC95 {_br(s['lacuna_ic95'][0])} a "
+    return ". ".join(
+        f"{s['segmento_texto'][0].upper() + s['segmento_texto'][1:]}, o Guaraná está em {_br(s['guarana_refri_geral_pct'])}% do "
+        f"refrigerante em geral e em {_br(s['guarana_na_pizza_pct'])}% das ocasiões de pizza, "
+        f"lacuna de {_br(s['lacuna_pp'])} pontos (IC95 {_br(s['lacuna_ic95'][0])} a "
         f"{_br(s['lacuna_ic95'][1])})"
         for s in segs
     )
@@ -402,9 +424,9 @@ def _texto_lacuna(segs: list[dict]) -> str:
 
 def _texto_presenca(segs: list[dict], brasil: float | None) -> str:
     ref = f", contra {_br(brasil)}% no Brasil" if brasil is not None else ""
-    return "; ".join(
-        f"{s['segmento']}: Guaraná em {_br(s['guarana_refri_geral_pct'])}% do refrigerante em "
-        f"geral (IC95 {_br(s['guarana_refri_geral_ic95'][0])} a "
+    return ". ".join(
+        f"{s['segmento_texto'][0].upper() + s['segmento_texto'][1:]}, o Guaraná está em {_br(s['guarana_refri_geral_pct'])}% do "
+        f"refrigerante em geral (IC95 {_br(s['guarana_refri_geral_ic95'][0])} a "
         f"{_br(s['guarana_refri_geral_ic95'][1])}){ref}"
         for s in segs
     )
@@ -494,11 +516,11 @@ def decidir(
     casa = brasil["em_casa"]["pct"] if brasil else None
     motivos = {
         1: "Faixa baixa fora da noite: 93% das ocasiões de pizza com refrigerante são à noite.",
-        2: "Faixa alta num segmento onde o Guaraná já é fraco no refrigerante em geral ("
-        f"{_texto_presenca(presenca, ref_br)}): antes de converter na pizza, é preciso presença "
-        "e associação.",
+        2: "Faixa alta num segmento onde o Guaraná já é fraco no refrigerante em geral. "
+        f"{_texto_presenca(presenca, ref_br)}. Antes de converter na pizza, é preciso presença e "
+        "associação.",
         3: "Faixa alta num segmento onde o Guaraná é forte no refrigerante do dia a dia, mas some "
-        f"na pizza ({_texto_lacuna(lacuna)}): a marca já está na casa, falta ligá-la à pizza.",
+        f"na pizza. {_texto_lacuna(lacuna)}. A marca já está na casa; falta ligá-la à pizza.",
         4: "Faixa alta, sem sinal de lacuna nem de baixa presença do Guaraná no segmento: "
         + (
             f"o canal informado ({CANAL_TEXTO[contexto.canal]}) decide a ação."
@@ -511,9 +533,9 @@ def decidir(
         "para criar frequência; que a ação gere consumo novo é hipótese (sem dado).",
         6: "Faixa média: "
         + (
-            f"Guaraná fraco no refrigerante em geral ({_texto_presenca(presenca, ref_br)})."
+            f"Guaraná fraco no refrigerante em geral. {_texto_presenca(presenca, ref_br)}."
             if presenca
-            else f"lacuna de associação ({_texto_lacuna(lacuna)})."
+            else f"lacuna de associação. {_texto_lacuna(lacuna)}."
             if lacuna
             else f"classe {contexto.classe}, e as classes B a D somam 86% das ocasiões "
             "(POF 2017-18); a Ambev quer expandir além da classe A."
