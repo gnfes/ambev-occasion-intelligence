@@ -120,6 +120,7 @@ uv run python -m occasion.modelagem.tabela        # modeling table
 uv run python -m occasion.modelagem.experimentos  # baseline, logistic, LightGBM and ablation
 uv run --group automl python -m occasion.modelagem.candidatos  # candidates and AutoML
 uv run python -m occasion.modelagem.final         # served model (models/)
+uv run python -m occasion.modelagem.vies_grupos   # group bias before and after the correction (read by the Map)
 uv run python -m occasion.modelagem.incerteza     # 200 bootstrap replicas for the 95% CI (~10 min)
 uv run python -m occasion.modelagem.avaliacao     # importance, bands, segments and errors
 uv run python -m occasion.decisao.associacao      # Guaraná by segment (data/referencia/)
@@ -241,7 +242,7 @@ Takes the score, the context and the factors and applies seven ordered rules (th
 | 2 | high band and low brand presence in the segment (South, class B) | awareness and association with creators | Guaraná is already weak in soda in general there |
 | 3 | high band and an association gap in the segment (North, Northeast, state capitals) | conversion: bring Guaraná to the pizza | Guaraná is strong in everyday soda and disappears at pizza |
 | 4 | high band, no association signal | delivery → delivery activation; pizzeria → in-pizzeria action; at home or no channel → at-home combo | 66% of occasions are at home (delivery included) |
-| 5 | the same profile reaches the high band at its best day and period | build frequency on the best Monday-to-Thursday night | there is affinity in the profile; that the action creates new consumption is a hypothesis |
+| 5 | the same profile reaches the high band at its best day and period | build frequency on the best Monday-to-Thursday night (at the profile's best moment if that night is in the low band) | there is affinity in the profile; that the action creates new consumption is a hypothesis |
 | 6 | medium band and (low presence, gap or class B to D) | awareness and association with the segment's creators | B to D add up to 86% of occasions; class A, 5% |
 | 7 | the rest | no activation (monitor) | |
 
@@ -268,8 +269,8 @@ Every recommendation with an activation comes with a plan ([`decisao/plano.py`](
 |---|---|
 | Who | the context's profile, the segment that triggered the rule, the percentile within the class |
 | Where | the region's 3 highest-priority cities from the Opportunity Map (capitals if the area is a capital; rural areas get no list) |
-| When | day and period; at night, 7 to 9 pm (70.9% of occasions start then, 95% CI 61.9 to 79.4); in rule 5, the best Monday-to-Thursday night; the state's upcoming weeks with holidays (Trend Radar, informational) |
-| Channel | the given channel; without one, "at home" only where the 95% CI of the region's at-home share is above 50% (Southeast and South), otherwise home and pizzeria |
+| When | day and period; at night, 7 to 9 pm (70.9% of occasions start then, 95% CI 61.9 to 79.4); in rule 5, the best Monday-to-Thursday night, or the profile's best moment if that night is in the low band; the state's upcoming weeks with holidays (Trend Radar, informational) |
+| Channel | awareness and build frequency: content creators (for build frequency, then the neighborhood pizzeria), whatever channel was given; at-home combo with no channel: at-home consumption, with the region's at-home share as the basis; otherwise the given channel, and without one, "at home" only where the 95% CI of the region's at-home share is above 50% (Southeast and South), otherwise home and pizzeria |
 | Creator | a creator profile by category and region ([`perfis_criadores.json`](data/referencia/perfis_criadores.json)): regional food, micro, for conversion in the North and Northeast (73% of northeasterners follow regional creators, Influency.me/Opinion Box 2025); urban food reviews for conversion elsewhere; entertainment with reach for awareness; everyday food, nano to micro, for building frequency. Market figures come from secondary sources; examples without contract checks |
 | Mechanic and message | one per category, labeled as hypotheses |
 | Measurement | indicator and the segment's POF baseline; no target, because there is no effect data |
@@ -288,7 +289,7 @@ The interval only measures the POF sample's variation. It does not cover habit c
 
 ## Opportunity Map
 
-A case extra. It applies the model, without retraining, to the 20–44 audience of the 319 municipalities with 100k+ inhabitants (Census 2022) and crosses it with the supply of active pizzerias in the CNPJ registry (17,271 in those municipalities, out of 25,474 nationwide). Four rules: high potential and high supply → neighborhood pizzeria (64 municipalities); high potential and low supply → delivery and creators (28); medium potential with a B-to-D majority → awareness (164); the rest → monitor (63). Report (Portuguese): [opportunity map](docs/relatorios/mapa_oportunidade.md).
+A case extra. It applies the model, without retraining, to the 20–44 audience of the 319 municipalities with 100k+ inhabitants (Census 2022) and crosses it with the supply of active pizzerias in the CNPJ registry (17,271 in those municipalities, out of 25,474 nationwide). Four rules: high potential and high supply → neighborhood pizzeria (65 municipalities); high potential and low supply → delivery and creators (31); medium potential with a B-to-D majority → awareness (161); the rest → monitor (62). Report (Portuguese): [opportunity map](docs/relatorios/mapa_oportunidade.md).
 
 ## Trend Radar
 

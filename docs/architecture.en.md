@@ -87,7 +87,8 @@ flowchart LR
     P1 --> TB["modelagem.tabela"]
     TB --> P2[("data/processed/<br/>tabela_modelagem_*.parquet")]
     P2 --> EX["experimentos, candidatos,<br/>avaliacao, vies_grupos, sintetico"]
-    EX --> REL[("docs/relatorios/")]
+    EX --> REL[("data/processed/<br/>reports")]
+    REL -.->|manual copy| DOC[("docs/relatorios/")]
     P2 --> FI["modelagem.final"]
     FI --> MOD[("models/occasion_score_v1.1.0.*")]
     MOD --> INC["modelagem.incerteza"]
@@ -162,14 +163,14 @@ Rules the code upholds that are not visible from a single file:
 | Boundary | Between | Format |
 |---|---|---|
 | HTTP | App (or another system) and API | JSON validated by Pydantic. Optional `versao_modelo` in the input: if it does not match the served version, the API returns 409 |
-| Saved model | Offline pipeline and API | `models/occasion_score_v1.1.0.joblib` and `.json` (coefficients, Platt, offsets, band cut-offs, metadata) |
+| Saved model | Offline pipeline and API | `models/occasion_score_v1.1.0.joblib` (the whole model, with the coefficients) and `.json` (metadata: Platt, offsets, band cut-offs and validation) |
 | Replicas | `modelagem.incerteza` and API | `models/occasion_score_v1.1.0_incerteza.npz`, accepted only if the version and number of terms match the model |
 | Reference tables | Offline pipelines and Engine | CSV and JSON in `data/referencia/`, with the schema described in each module's docstring |
 | External sources | Offline collections and public services | FTP and HTTP, with the result versioned when the source changes on every request |
 
 ## Cross-cutting concerns
 
-- **Configuration**: `OCCASION_API_URL` (API address for the app), `OCCASION_DATA_DIR` (data folder outside the repository) and `PORTA_API` (port used by `rodar.sh`). There are no API keys or secrets.
+- **Configuration**: `OCCASION_API_URL` (API address for the app), `OCCASION_DATA_DIR` (data folder outside the repository), `OCCASION_MODEL_PATH` and `OCCASION_INCERTEZA_PATH` (model and replicas outside `models/`) and `PORTA_API` (port used by `rodar.sh`). There are no API keys or secrets.
 - **Sample weights**: every metric, rate and share uses the POF weight, with each weekday counting 1/7.
 - **Uncertainty**: census-tract bootstrap, the cluster of the POF sample, instead of independent rows.
 - **Reproducibility**: Python 3.14 pinned in `.python-version`, dependencies locked in `uv.lock`, fixed seeds, versioned external collections.

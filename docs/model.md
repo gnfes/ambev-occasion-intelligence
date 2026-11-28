@@ -83,7 +83,7 @@ Relatórios: [experimentos](relatorios/experimentos_occasion_score.md), [candida
 
 - **Dados pessoais**: a POF é pública e anonimizada pelo IBGE. Nenhum dado de cliente da Ambev foi usado.
 - **Viés por grupo**: o modelo nacional subestimava o Nordeste e superestimava o Centro-Oeste e a área rural. A correção é aplicada e medida fora da amostra. A classe D está calibrada, mas tem poucas pessoas na faixa alta nacional, então a API mostra também a posição do score dentro da classe.
-- **Público**: o score prioriza onde a ocasião já é frequente (classe A, noite, fim de semana). Para não reforçar só esse público, o Engine trata a faixa média das classes B a D como awareness.
+- **Público**: o score prioriza onde a ocasião já é frequente (noite, fim de semana) e superestima a classe A (previsto ÷ observado 1,92 na validação temporal), cuja taxa observada fica abaixo das classes B e C. Para não reforçar só o topo da régua, o Engine trata a faixa média das classes B a D como awareness.
 - **Sem causalidade**: nenhuma recomendação afirma que uma ação vende mais. Mensagens e mecânicas vêm marcadas como hipóteses.
 
 ## Ressalvas e recomendações

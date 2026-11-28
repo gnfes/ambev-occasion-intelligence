@@ -87,7 +87,8 @@ flowchart LR
     P1 --> TB["modelagem.tabela"]
     TB --> P2[("data/processed/<br/>tabela_modelagem_*.parquet")]
     P2 --> EX["experimentos, candidatos,<br/>avaliacao, vies_grupos, sintetico"]
-    EX --> REL[("docs/relatorios/")]
+    EX --> REL[("data/processed/<br/>relatórios")]
+    REL -.->|cópia manual| DOC[("docs/relatorios/")]
     P2 --> FI["modelagem.final"]
     FI --> MOD[("models/occasion_score_v1.1.0.*")]
     MOD --> INC["modelagem.incerteza"]
@@ -162,14 +163,14 @@ Regras que o código mantém e que não aparecem lendo um arquivo só:
 | Fronteira | Entre | Formato |
 |---|---|---|
 | HTTP | App (ou outro sistema) e API | JSON validado por Pydantic. `versao_modelo` opcional na entrada: se não bater com a versão servida, a API responde 409 |
-| Modelo salvo | Pipeline offline e API | `models/occasion_score_v1.1.0.joblib` e `.json` (coeficientes, Platt, offsets, cortes das faixas, metadados) |
+| Modelo salvo | Pipeline offline e API | `models/occasion_score_v1.1.0.joblib` (o modelo inteiro, com os coeficientes) e `.json` (metadados: Platt, offsets, cortes das faixas e validação) |
 | Réplicas | `modelagem.incerteza` e API | `models/occasion_score_v1.1.0_incerteza.npz`, aceitas só se a versão e o número de termos baterem com o modelo |
 | Tabelas de referência | Pipelines offline e Engine | CSV e JSON em `data/referencia/`, com o esquema descrito na docstring de cada módulo |
 | Fontes externas | Coletas offline e serviços públicos | FTP e HTTP, com o resultado versionado quando a fonte muda a cada pedido |
 
 ## Preocupações transversais
 
-- **Configuração**: `OCCASION_API_URL` (endereço da API para o app), `OCCASION_DATA_DIR` (pasta de dados fora do repositório) e `PORTA_API` (porta do `rodar.sh`). Não há chave de API nem segredo.
+- **Configuração**: `OCCASION_API_URL` (endereço da API para o app), `OCCASION_DATA_DIR` (pasta de dados fora do repositório), `OCCASION_MODEL_PATH` e `OCCASION_INCERTEZA_PATH` (modelo e réplicas fora de `models/`) e `PORTA_API` (porta do `rodar.sh`). Não há chave de API nem segredo.
 - **Pesos amostrais**: toda métrica, taxa e fatia usa o peso da POF, com cada dia da semana valendo 1/7.
 - **Incerteza**: bootstrap por setor censitário, o cluster da amostra da POF, em vez de linhas independentes.
 - **Reprodutibilidade**: Python 3.14 fixado em `.python-version`, dependências travadas no `uv.lock`, sementes fixas, coletas externas versionadas.

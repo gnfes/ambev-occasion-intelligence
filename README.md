@@ -120,6 +120,7 @@ uv run python -m occasion.modelagem.tabela        # tabela de modelagem
 uv run python -m occasion.modelagem.experimentos  # baseline, logística, LightGBM e ablação
 uv run --group automl python -m occasion.modelagem.candidatos  # candidatos e AutoML
 uv run python -m occasion.modelagem.final         # modelo servido (models/)
+uv run python -m occasion.modelagem.vies_grupos   # viés por grupo antes e depois da correção (lido pelo Mapa)
 uv run python -m occasion.modelagem.incerteza     # 200 réplicas do bootstrap para o IC95 (~10 min)
 uv run python -m occasion.modelagem.avaliacao     # importância, faixas, segmentos e erros
 uv run python -m occasion.decisao.associacao      # Guaraná por segmento (data/referencia/)
@@ -241,7 +242,7 @@ Recebe o score, o contexto e os fatores e aplica sete regras em ordem (a primeir
 | 2 | faixa alta e baixa presença da marca no segmento (Sul, classe B) | awareness e associação com criadores | o Guaraná já é fraco no refrigerante em geral ali |
 | 3 | faixa alta e lacuna de associação no segmento (Norte, Nordeste, capitais) | conversão: levar o Guaraná para a pizza | o Guaraná é forte no refrigerante do dia a dia e some na pizza |
 | 4 | faixa alta, sem sinal de associação | delivery → ativação via delivery; pizzaria → ação na pizzaria; em casa ou sem canal → combo para casa | 66% das ocasiões são em casa (delivery incluído) |
-| 5 | o mesmo perfil chega à faixa alta no seu melhor dia e turno | criar frequência na melhor noite de segunda a quinta | há afinidade no perfil; que a ação crie consumo novo é hipótese |
+| 5 | o mesmo perfil chega à faixa alta no seu melhor dia e turno | criar frequência na melhor noite de segunda a quinta (no melhor momento do perfil, se essa noite fica na faixa baixa) | há afinidade no perfil; que a ação crie consumo novo é hipótese |
 | 6 | faixa média e (baixa presença, lacuna ou classe B a D) | awareness e associação com criadores do segmento | B a D somam 86% das ocasiões; a classe A, 5% |
 | 7 | resto | sem ativação (monitorar) | |
 
@@ -268,8 +269,8 @@ Toda recomendação com ativação sai com um plano ([`decisao/plano.py`](src/oc
 |---|---|
 | Para quem | perfil do contexto, segmento que disparou a regra, percentil na classe |
 | Onde | 3 cidades de maior prioridade do Mapa de Oportunidade na região (capitais se a área é capital; área rural fica sem lista) |
-| Quando | dia e turno; à noite, 19h a 21h (70,9% das ocasiões começam aí, IC95 61,9 a 79,4); na regra 5, a melhor noite de segunda a quinta; as próximas semanas da UF com feriados (Trend Radar, informativo) |
-| Canal | o canal informado; sem canal, "em casa" só onde o IC95 da fatia em casa na região fica acima de 50% (Sudeste e Sul), senão casa e salão |
+| Quando | dia e turno; à noite, 19h a 21h (70,9% das ocasiões começam aí, IC95 61,9 a 79,4); na regra 5, a melhor noite de segunda a quinta, ou o melhor momento do perfil se essa noite fica na faixa baixa; as próximas semanas da UF com feriados (Trend Radar, informativo) |
+| Canal | awareness e criar frequência: criadores de conteúdo (em criar frequência, depois a pizzaria do bairro), qualquer que seja o canal informado; combo para casa sem canal: consumo em casa, com a fatia em casa da região como base; nos outros casos, o canal informado, e sem canal, "em casa" só onde o IC95 da fatia em casa na região fica acima de 50% (Sudeste e Sul), senão casa e salão |
 | Criador | perfil de criador por categoria e região ([`perfis_criadores.json`](data/referencia/perfis_criadores.json)): comida regional, micro, na conversão do Norte e do Nordeste (73% dos nordestinos seguem criadores regionais, Influency.me/Opinion Box 2025); review de comida urbano na conversão das outras regiões; entretenimento com alcance no awareness; comida do dia a dia, nano a micro, em criar frequência. Números de mercado de fontes secundárias; exemplos sem checagem de contrato |
 | Mecânica e mensagem | uma por categoria, marcadas como hipótese |
 | Medição | indicador e linha de base do segmento na POF; sem meta, porque não há dado de efeito |
@@ -288,7 +289,7 @@ O intervalo mede só a variação da amostra da POF. Ele não cobre a mudança d
 
 ## Mapa de Oportunidade
 
-Extra do case. Aplica o modelo, sem retreinar, ao público de 20 a 44 anos dos 319 municípios com 100 mil habitantes ou mais (Censo 2022) e cruza com a oferta de pizzarias ativas no CNPJ (17.271 nesses municípios, de 25.474 no país). Quatro regras: potencial alto e oferta alta → pizzaria do bairro (64 municípios); potencial alto e oferta baixa → delivery e criadores (28); potencial médio com maioria B a D → awareness (164); o resto → monitorar (63). Relatório: [mapa de oportunidade](docs/relatorios/mapa_oportunidade.md).
+Extra do case. Aplica o modelo, sem retreinar, ao público de 20 a 44 anos dos 319 municípios com 100 mil habitantes ou mais (Censo 2022) e cruza com a oferta de pizzarias ativas no CNPJ (17.271 nesses municípios, de 25.474 no país). Quatro regras: potencial alto e oferta alta → pizzaria do bairro (65 municípios); potencial alto e oferta baixa → delivery e criadores (31); potencial médio com maioria B a D → awareness (161); o resto → monitorar (62). Relatório: [mapa de oportunidade](docs/relatorios/mapa_oportunidade.md).
 
 ## Trend Radar
 

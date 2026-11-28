@@ -83,7 +83,7 @@ Reports (Portuguese): [experiments](relatorios/experimentos_occasion_score.md), 
 
 - **Personal data**: the POF is public and anonymized by IBGE. No Ambev customer data was used.
 - **Group bias**: the national model underestimated the Northeast and overestimated the Center-West and rural areas. The correction is applied and measured out of sample. Class D is calibrated but has few people in the national high band, so the API also shows the score's position within the class.
-- **Audience**: the score favors where the occasion is already frequent (class A, night, weekend). To avoid reinforcing only that audience, the Engine treats the medium band of classes B to D as awareness.
+- **Audience**: the score favors where the occasion is already frequent (night, weekend) and overestimates class A (predicted ÷ observed 1.92 in temporal validation), whose observed rate is below classes B and C. To avoid reinforcing only the top of the ranking, the Engine treats the medium band of classes B to D as awareness.
 - **No causality**: no recommendation claims an action sells more. Messages and mechanics are labeled as hypotheses.
 
 ## Caveats and recommendations
