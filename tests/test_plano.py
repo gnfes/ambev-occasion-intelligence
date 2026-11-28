@@ -65,7 +65,7 @@ def test_plano_da_conversao(modelo):
     assert p["quando"]["proximas_4_semanas"]["uf"] == p["onde"]["cidades"][0]["uf"]
     assert p["mecanica"]["natureza"].startswith("hipótese")
     assert p["medicao"]["meta"] is None
-    assert p["medicao"]["linha_de_base_pct"] == 16.3
+    assert p["medicao"]["linha_de_base_pct"] == 16.6
     # O canal da recomendação é o do plano (Nordeste sem maioria clara em casa).
     assert r.recommendation_channel == p["canal"]["valor"]
     assert {"mapa", "inicio_19_21", "radar"} <= {f["id"] for f in r.sources}
@@ -101,3 +101,35 @@ def test_awareness_comeca_por_criadores_mesmo_com_canal(modelo):
     assert r.rule == 2
     assert r.recommendation_channel == r.activation_plan["canal"]["valor"]
     assert r.recommendation_channel.startswith("criadores")
+
+
+def test_janela_tira_as_semanas_que_ja_passaram(monkeypatch):
+    import datetime as dt
+
+    pj = {"semanas": ["2026-11-29", "2026-12-06", "2026-12-13", "2026-12-20"],
+          "feriados": ["Natal"], "desvio_previsto_pct": 1.2}  # fmt: skip
+    monkeypatch.setattr(plano, "_radar", lambda: {"SP": {"proxima_janela": pj}})
+    cheia = plano.janela("SP", hoje=dt.date(2026, 11, 29))
+    assert cheia["feriados"] == ["Natal"] and cheia["desvio_previsto_busca_pct"] == 1.2
+    j = plano.janela("SP", hoje=dt.date(2026, 12, 15))
+    assert j["de"] == "2026-12-13" and j["ate"] == "2026-12-26"
+    # Desvio e feriados eram das 4 semanas: numa janela encurtada saem.
+    assert j["feriados"] == [] and j["desvio_previsto_busca_pct"] is None
+    assert plano.janela("SP", hoje=dt.date(2026, 12, 27)) is None
+
+
+def test_regra_5_sem_noite_de_semana_nao_fala_em_noite_de_semana(modelo):
+    p = plano.montar(
+        categoria="criar_frequencia",
+        contexto=_ctx(turno="almoco", dia=2),
+        perfil_texto="perfil",
+        percentil=None,
+        lacuna=[],
+        presenca=[],
+        tabela=None,
+        momento={"dia_semana": 6, "dia": "sábado", "turno": "noite"},
+        noite_de_semana=None,
+        medido=False,
+    )
+    assert "noite de semana indicada" not in p["mecanica"]["texto"]
+    assert "não é só sábado" not in p["mecanica"]["mensagem"]

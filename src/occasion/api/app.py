@@ -361,9 +361,7 @@ def radar_uf(sigla: str, request: Request) -> dict:
     if series is not None:
         # Só semanas fechadas: a semana em curso ainda é parcial no Trends.
         uf = series[(series["sigla"] == sigla) & ~series["parcial"].astype(bool)]
-        serie = (
-            uf.pivot_table(index="semana", columns="termo", values="indice")
-            .reset_index()
-            .to_dict("records")
-        )
+        tabela = uf.pivot_table(index="semana", columns="termo", values="indice").reset_index()
+        # Semana sem um dos termos vira None (o JSON não aceita NaN).
+        serie = tabela.astype(object).where(pd.notna(tabela), None).to_dict("records")
     return {"alerta": alerta, "serie": serie}

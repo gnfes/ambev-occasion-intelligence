@@ -78,7 +78,7 @@ FONTES: dict[str, dict] = {
         "detalhe": f"{REPO}/data/referencia/mapa_oportunidade.csv",
     },
     "inicio_19_21": {
-        "numero": "70% das ocasiões de pizza com refrigerante começam entre 19h e 21h",
+        "numero": "71% das ocasiões de pizza com refrigerante começam entre 19h e 21h",
         "fonte": _POF_CALCULO,
         "ano": "2017-18",
         "url": POF_2017,
@@ -122,6 +122,10 @@ POR_REGRA: dict[int, list[str]] = {
     7: [],
 }
 
+LIMITE_INTERVALO = (
+    "O intervalo mede a variação da amostra da POF (bootstrap por setor). Ele não cobre erro de "
+    "especificação do modelo."
+)
 LIMITES: list[str] = [
     (
         "Os dados são da POF 2017-18, a mais recente com microdados de consumo; o hábito pode ter "
@@ -142,11 +146,13 @@ LIMITES: list[str] = [
         "É associação, não causa: o score diz onde a ocasião acontece, não que uma ação vai criar "
         "consumo novo."
     ),
-    (
-        "O intervalo mede a variação da amostra da POF (bootstrap por setor). Ele não cobre erro de "
-        "especificação do modelo."
-    ),
+    LIMITE_INTERVALO,
 ]
+
+
+def limites(com_intervalo: bool = True) -> list[str]:
+    """O que o modelo não sabe; sem intervalo na resposta, sai o limite do intervalo."""
+    return [x for x in LIMITES if com_intervalo or x != LIMITE_INTERVALO]
 
 
 def fontes_da_resposta(
@@ -155,9 +161,11 @@ def fontes_da_resposta(
     com_associacao: bool = False,
     cita_em_casa: bool = False,
     plano: dict | None = None,
+    com_intervalo: bool = True,
 ) -> list[dict]:
     """Fonte e ano de cada número que aparece numa recomendação."""
-    chaves = ["score", "intervalo", "media_populacao", *POR_REGRA.get(regra, [])]
+    chaves = ["score", *(["intervalo"] if com_intervalo else []), "media_populacao"]
+    chaves += POR_REGRA.get(regra, [])
     if regra in (2, 3, 6) and com_associacao:
         chaves.append("associacao")
     if regra == 6 and not com_associacao:

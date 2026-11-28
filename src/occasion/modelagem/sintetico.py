@@ -847,7 +847,7 @@ def rodar(
         vae_kwargs,
     )
     destino = saida / "dados_sinteticos.md"
-    destino.write_text(rel)
+    destino.write_text(rel, encoding="utf-8")
     grade.to_csv(saida / "dados_sinteticos_grade.csv", index=False)
     return destino
 

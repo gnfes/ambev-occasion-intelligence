@@ -87,7 +87,7 @@ def _tendencia_e_fatores(a: dict, t: dict, serie: pd.DataFrame) -> None:
             f"{_pct(marca['variacao_anual_pct'])} contra o ano anterior."
         )
 
-    serie = pd.DataFrame(detalhe["serie"])
+    serie = serie.copy()
     if not serie.empty:
         serie["semana"] = pd.to_datetime(serie["semana"])
         st.line_chart(serie.set_index("semana")[["pizza"]], y_label="índice do Trends (0 a 100)")
@@ -144,8 +144,8 @@ if m:
     st.markdown(
         f"**No Mapa de Oportunidade:** {m['municipios_no_mapa']} municípios, "
         f"{m['municipios_potencial_alto']} de potencial alto. Destaque: "
-        f"**{m['municipio_destaque']}**, {m['recomendacao_destaque']} "
-        f"(canal: {m['canal_destaque']})."
+        f"**{m['municipio_destaque']}**, {m['recomendacao_destaque']}"
+        + (f" (canal: {m['canal_destaque']})." if m.get("canal_destaque") else ".")
     )
 
 with st.expander("Validação fora do tempo e coeficientes"):

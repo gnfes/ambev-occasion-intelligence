@@ -443,7 +443,13 @@ def main(destino: Path = PROCESSED_DIR) -> None:
         json.dumps({"meta": meta, "municipios": pontos}, ensure_ascii=False, allow_nan=False),
         encoding="utf-8",
     )
-    pd.DataFrame(pontos).to_csv(destino / ARQUIVO_PONTOS_REFERENCIA.name, index=False)
+    # O ranking e os pontos tinham o mesmo nome de arquivo: os pontos sobrescreviam o ranking
+    # em `destino`. Os pontos vão para o próprio nome e, na rodada padrão, para a cópia
+    # versionada que a API, o plano de ativação e o Radar leem.
+    tabela_pontos = pd.DataFrame(pontos)
+    tabela_pontos.to_csv(destino / "mapa_oportunidade_pontos.csv", index=False)
+    if destino.resolve() == PROCESSED_DIR.resolve():
+        tabela_pontos.to_csv(ARQUIVO_PONTOS_REFERENCIA, index=False)
     print(ranking.groupby("recomendacao").size())
 
 

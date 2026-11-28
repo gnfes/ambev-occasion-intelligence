@@ -77,16 +77,20 @@ def pontuar(perfil: pd.DataFrame, modelo: final.OccasionScore | None = None) -> 
     for d in delta:
         p_semana += prob(base + d)
 
-    classe = pd.Series(perfil["renda_mensal"] / SALARIO_MINIMO_2022).map(classe_de_renda)
+    # Renda ausente fica sem classe e fora do denominador da parte B a D (antes caía na A).
+    classe = pd.Series(perfil["renda_mensal"] / SALARIO_MINIMO_2022).map(
+        lambda r: classe_de_renda(r) if pd.notna(r) else None
+    )
     df = perfil.assign(
         w=perfil["pessoas"],
         sab=p_sab * perfil["pessoas"],
         sem=p_semana * perfil["pessoas"],
         alta=(p_sab >= modelo.corte_alta) * perfil["pessoas"],
         bd=classe.isin(["B", "C", "D"]).to_numpy() * perfil["pessoas"],
+        w_classe=classe.notna().to_numpy() * perfil["pessoas"],
     )
     g = df.groupby(["CD_MUN", "municipio", "uf", "regiao"], as_index=False)[
-        ["w", "sab", "sem", "alta", "bd"]
+        ["w", "sab", "sem", "alta", "bd", "w_classe"]
     ].sum()
     tipo = (
         perfil[perfil["tipo_area"] != "rural"]
@@ -107,6 +111,6 @@ def pontuar(perfil: pd.DataFrame, modelo: final.OccasionScore | None = None) -> 
             "ocasioes_semana": g["sem"],
             "ocasioes_por_mil": 1000 * g["sem"] / g["w"],
             "pct_faixa_alta": 100 * g["alta"] / g["w"],
-            "pct_classe_bd": 100 * g["bd"] / g["w"],
+            "pct_classe_bd": 100 * g["bd"] / g["w_classe"],
         }
     )

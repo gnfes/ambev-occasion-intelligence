@@ -83,6 +83,15 @@ MECANICA = {
 }
 
 
+MECANICA_SEM_NOITE_DE_SEMANA = (
+    (
+        "Criadores online chamando para a pizza com Guaraná no melhor momento do perfil (as "
+        "noites de semana dele ficam na faixa baixa); depois, a mesma oferta na pizzaria do bairro."
+    ),
+    '"Pizza boa pede Guaraná"',
+)
+
+
 def _versao(caminho) -> int | None:
     try:
         return caminho.stat().st_mtime_ns
@@ -153,15 +162,20 @@ def janela(uf: str | None, hoje: dt.date | None = None) -> dict | None:
     pj = a.get("proxima_janela") if a else None
     if not pj or not pj.get("semanas"):
         return None
-    fim = dt.date.fromisoformat(pj["semanas"][-1]) + dt.timedelta(days=6)
-    if fim < (hoje or dt.date.today()):
+    hoje = hoje or dt.date.today()
+    # Só as semanas que ainda não terminaram (semana = domingo a sábado).
+    semanas = [s for s in pj["semanas"] if dt.date.fromisoformat(s) + dt.timedelta(days=6) >= hoje]
+    if not semanas:
         return None
+    fim = dt.date.fromisoformat(semanas[-1]) + dt.timedelta(days=6)
+    inteira = len(semanas) == len(pj["semanas"])
+    # Desvio e feriados foram calculados para as 4 semanas: numa janela encurtada saem.
     return {
         "uf": uf,
-        "de": pj["semanas"][0],
+        "de": semanas[0],
         "ate": fim.isoformat(),
-        "feriados": list(pj.get("feriados", [])),
-        "desvio_previsto_busca_pct": pj.get("desvio_previsto_pct"),
+        "feriados": list(pj.get("feriados", [])) if inteira else [],
+        "desvio_previsto_busca_pct": pj.get("desvio_previsto_pct") if inteira else None,
         "natureza": "informativo: o Trend Radar não superou o baseline fora do tempo",
     }
 
@@ -282,6 +296,10 @@ def montar(
                    "base": "início das ocasiões de pizza com refrigerante, Brasil, 20 a 44 anos"}  # fmt: skip
     gatilho = [s["segmento_texto"] for s in (presenca or lacuna)]
     mecanica, mensagem = MECANICA[categoria]
+    if categoria == "criar_frequencia" and noite_de_semana is None:
+        # Regra 5 com todas as noites de semana na faixa baixa: a ação vai para o melhor
+        # momento do perfil, e o texto não pode falar em noite de semana.
+        mecanica, mensagem = MECANICA_SEM_NOITE_DE_SEMANA
     return {
         "para_quem": {
             "perfil": perfil_texto,

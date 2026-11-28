@@ -584,7 +584,11 @@ def decidir(
             f"o canal informado ({plano.CANAL_PLANO[contexto.canal]}) decide a ação."
             if contexto.canal
             else "sem canal informado, a ação é para consumo em casa"
-            + (f" ({_br(casa)}% das ocasiões são em casa, com delivery incluído)." if casa else ".")
+            + (
+                f" ({_br(casa)}% das ocasiões são em casa, com delivery incluído)."
+                if casa is not None
+                else "."
+            )
         ),
         5: f"O momento pedido é fraco, mas o mesmo perfil chega à faixa alta em "
         f"{melhor['dia']}, {melhor['turno']} (score {melhor['occasion_score']:.2f}). Há afinidade "
@@ -639,8 +643,9 @@ def decidir(
             com_associacao=bool(lacuna or presenca),
             cita_em_casa=contexto.canal is None and casa is not None,
             plano=plano_ativacao,
+            com_intervalo=bool(incerto["occasion_score_ic95"]),
         ),
-        limitations=list(fontes.LIMITES),
+        limitations=fontes.limites(com_intervalo=bool(incerto["occasion_score_ic95"])),
         model_metadata={
             k: modelo.metadata.get(k) for k in ("modelo", "versao", "treinado_em", "features")
         },

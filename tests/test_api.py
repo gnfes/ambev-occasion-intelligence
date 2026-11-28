@@ -158,3 +158,20 @@ def test_replicas_de_outra_versao_sao_ignoradas(tmp_path, monkeypatch):
     with TestClient(api.app) as c:
         u = c.post("/predict", json=ENTRADA).json()["uncertainty"]
     assert u["disponivel"] is False
+
+
+def test_radar_uf_aguenta_semana_sem_um_dos_termos(cliente):
+    series = cliente.app.state.radar_series
+    if series is None:
+        pytest.skip("sem a série do Radar")
+    sp = series[(series["sigla"] == "SP") & ~series["parcial"].astype(bool)]
+    # Tira o "pizza" da semana mais antiga: o pivot deixa NaN nessa semana.
+    primeira = sp["semana"].min()
+    sem_um = series.drop(sp[(sp["semana"] == primeira) & (sp["termo"] == "pizza")].index)
+    cliente.app.state.radar_series = sem_um
+    try:
+        r = cliente.get("/radar/SP")
+    finally:
+        cliente.app.state.radar_series = series
+    assert r.status_code == 200
+    assert any(linha.get("pizza") is None for linha in r.json()["serie"])
