@@ -49,7 +49,7 @@ with st.sidebar:
         "Canal da ativação",
         [None, *op["canal"]],
         format_func=R.CANAIS.get,
-        help="Só muda o canal quando a recomendação é de conversão (regra 2).",
+        help="Escolhe a categoria na regra 4 e o canal da conversão e do plano de ativação.",
     )
 
 entrada = {
@@ -75,6 +75,11 @@ faixa = r["classification"]
 
 pc = r.get("class_position") or {}
 inc = r.get("uncertainty") or {}
+
+
+def pct(x: float) -> str:
+    """Percentual com uma casa e vírgula, como na justificativa do engine."""
+    return f"{x:.1f}".replace(".", ",")
 
 
 def num(x: float) -> str:
@@ -188,13 +193,53 @@ esq, dir_ = st.columns([3, 2], gap="large")
 
 with esq:
     st.subheader(f":{R.CORES_FAIXA[faixa]}[{r['recommendation_name']}]")
-    if r["recommendation_channel"]:
+    if r["recommendation_channel"] and not r.get("activation_plan"):
         st.markdown(f"**Canal:** {r['recommendation_channel']}")
     st.markdown(f"**Por quê:** {r['recommendation_reason']}")
+    assoc = r.get("association") or {}
+    for chave, titulo in (("lacuna", "Lacuna de associação"), ("baixa_presenca", "Baixa presença")):
+        for seg in assoc.get(chave, []):
+            st.caption(
+                f"{titulo} em {seg['segmento']}: Guaraná em {pct(seg['guarana_refri_geral_pct'])}% "
+                f"do refrigerante em geral e {pct(seg['guarana_na_pizza_pct'])}% na pizza "
+                f"({seg['ocasioes_pizza']} ocasiões de pizza, POF 2017-18)."
+            )
     if r["messages"]:
         st.markdown("**Mensagens sugeridas**")
         for m in r["messages"]:
             st.markdown(f"- {m}")
+    plano = r.get("activation_plan")
+    if plano:
+        with st.expander("Plano de ativação", expanded=True):
+            q, onde, cn, med = plano["quando"], plano["onde"], plano["canal"], plano["medicao"]
+            st.markdown(f"**Para quem:** {plano['para_quem']['perfil']}")
+            if onde["cidades"]:
+                nomes = ", ".join(f"{c['municipio']} ({c['uf']})" for c in onde["cidades"])
+                st.markdown(f"**Onde:** {nomes}")
+            st.caption(onde["criterio"])
+            quando = f"{q['dia']}, {R.TURNOS[q['turno']].split(' (')[0].lower()}"
+            if q["horario"]:
+                h = q["horario"]
+                quando += (
+                    f", {h['janela']} ({pct(h['pct_ocasioes_comecam'])}% das ocasiões começam aí)"
+                )
+            st.markdown(f"**Quando:** {quando}")
+            j = q.get("proximas_4_semanas")
+            if j:
+                feriados = f", com {', '.join(j['feriados'])}" if j["feriados"] else ""
+                st.caption(
+                    f"Próximas 4 semanas em {j['uf']}: {j['de']} a {j['ate']}{feriados} ({j['natureza']})."
+                )
+            st.markdown(f"**Canal:** {cn['valor']}")
+            st.caption(cn["base"])
+            st.markdown(f"**Mecânica (hipótese):** {plano['mecanica']['texto']}")
+            st.markdown(f"**Mensagem (hipótese):** {plano['mecanica']['mensagem']}")
+            if med["linha_de_base_pct"] is not None:
+                st.markdown(
+                    f"**Como medir:** {med['indicador']} {med['segmento']}, hoje em "
+                    f"{pct(med['linha_de_base_pct'])}% (IC95 {pct(med['ic95'][0])} a "
+                    f"{pct(med['ic95'][1])}). Sem meta: não há dado de efeito."
+                )
     bm = r["best_moment"]
     bm_ic = bm.get("occasion_score_ic95")
     st.info(

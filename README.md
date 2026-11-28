@@ -243,17 +243,59 @@ Nordeste e da classe D. O modelo servido não mudou. Relatório:
 
 ## Decision Engine
 
-Recebe o score, o contexto e os fatores e aplica cinco regras em ordem (a primeira que vale
+Recebe o score, o contexto e os fatores e aplica sete regras em ordem (a primeira que vale
 decide). Não é uma segunda previsão: sem histórico de ações e resultados, a recomendação é uma
 decisão estruturada, e o sistema não afirma que uma ação vende mais que outra.
+
+A categoria depende do score, do canal e da associação do Guaraná à pizza no segmento, como
+pede a seção 7 do case. Antes (até 27/11), ela dependia quase só da faixa: no sábado à noite,
+os 90 contextos do protótipo recebiam o mesmo combo. As interações no modelo foram testadas
+(LightGBM, Random Forest, AutoML, turno × dia) e não ganharam da logística fora do tempo, então a
+variação por contexto mora no Engine.
 
 | regra | condição | categoria | por quê |
 |---|---|---|---|
 | 1 | faixa baixa fora da noite | sem ativação | 93% das ocasiões são à noite |
-| 2 | faixa alta | conversão no momento da pizza (combo pizza + Guaraná), no canal informado | a ocasião é provável e o Guaraná está em só 21% delas, sem segmento que difira |
-| 3 | o mesmo perfil chega à faixa alta no seu melhor dia e turno | criar frequência: criadores online, depois pizzaria do bairro | há afinidade no perfil; que a ação crie consumo novo é hipótese |
-| 4 | faixa média e classe B a D | awareness e associação com criadores do segmento | B a D somam 86% das ocasiões; a classe A, 5% |
-| 5 | resto | sem ativação (monitorar) | |
+| 2 | faixa alta e baixa presença da marca no segmento (Sul, classe B) | awareness e construção de associação com criadores | o Guaraná já é fraco no refrigerante em geral ali |
+| 3 | faixa alta e lacuna de associação no segmento (Norte, Nordeste, capitais) | conversão: levar o Guaraná para a pizza, no canal informado | o Guaraná é forte no refrigerante do dia a dia e some na pizza |
+| 4 | faixa alta, sem sinal de associação | delivery → ativação via delivery; pizzaria → ação na pizzaria; em casa ou sem canal → combo para casa | 66% das ocasiões são em casa (delivery incluído) |
+| 5 | o mesmo perfil chega à faixa alta no seu melhor dia e turno | criar frequência: criadores online, depois pizzaria do bairro | há afinidade no perfil; que a ação crie consumo novo é hipótese |
+| 6 | faixa média e (baixa presença, lacuna ou classe B a D) | awareness e associação com criadores do segmento | B a D somam 86% das ocasiões; a classe A, 5% |
+| 7 | resto | sem ativação (monitorar) | |
+
+**Associação por segmento** ([`decisao/associacao.py`](src/occasion/decisao/associacao.py),
+gravada em [`data/referencia/associacao_guarana.json`](data/referencia/associacao_guarana.json)):
+fatia do Guaraná nas ocasiões de refrigerante em geral e nas de pizza com refrigerante, público de
+20 a 44 anos da POF 2017-18, com IC95 por bootstrap de setores (1.000 réplicas).
+
+| segmento | Guaraná no refrigerante em geral | Guaraná na pizza | lacuna (pontos, IC95) | ocasiões de pizza | leitura |
+|---|---|---|---|---|---|
+| Norte | 34,0% | 7,8% | +26,2 (12,7 a 39,3) | 63 | lacuna |
+| Nordeste | 30,2% | 16,3% | +13,9 (5,8 a 20,7) | 147 | lacuna |
+| capital | 20,9% | 11,6% | +9,3 (1,7 a 15,5) | 163 | lacuna |
+| Sul | 17,6% (13,8 a 22,3) | 21,9% | −4,4 (−19,0 a 7,4) | 81 | baixa presença |
+| classe B | 14,2% (10,1 a 19,8) | 21,8% | −7,6 (−25,4 a 7,1) | 65 | baixa presença |
+| Brasil | 25,3% (22,8 a 27,8) | 21,1% | +4,3 (−3,5 a 11,3) | 444 | |
+
+Critérios fixos no código: lacuna = IC95 acima de zero e pelo menos 60 ocasiões de pizza; baixa
+presença = IC95 do segmento inteiro abaixo do IC95 nacional. Rural (33 ocasiões) e classe E (44)
+ficam de fora pela amostra; a faixa de 30 a 34 anos passa no limite e fica de fora (17
+comparações). Quando há baixa presença e lacuna juntas, vale a baixa presença. A associação é
+inferida pela fatia do Guaraná, não medida por pesquisa de marca. Para refazer:
+`uv run python -m occasion.decisao.associacao`.
+
+**Plano de ativação** (`activation_plan`, [`decisao/plano.py`](src/occasion/decisao/plano.py)).
+Toda recomendação com ativação sai com um plano. O plano não muda a regra; ele detalha a decisão
+só com dado medido:
+
+| Campo | De onde vem |
+|---|---|
+| Para quem | perfil do contexto, segmento que disparou a regra, percentil na classe |
+| Onde | 3 cidades de maior prioridade do Mapa de Oportunidade na região (capitais se a área é capital; o mapa não separa região metropolitana de interior; área rural fica sem lista) |
+| Quando | dia e turno do contexto; à noite, 19h a 21h (70,4% das ocasiões começam aí, IC95 61,1 a 79,3, POF); na regra 5, a melhor noite de segunda a quinta do perfil; próximas 4 semanas da UF com feriados (Trend Radar, informativo) |
+| Canal | o canal informado; sem canal, "em casa" só onde o IC95 da fatia em casa na região fica acima de 50% (Sudeste e Sul), senão casa e salão |
+| Mecânica e mensagem | uma por categoria, marcadas como hipótese (sem dado de efeito) |
+| Medição | indicador e linha de base do segmento na POF; sem meta, porque não há dado de efeito |
 
 A saída traz também `class_position`: a posição do score entre as pessoas da mesma classe de
 renda (2017-18). Não muda a regra; serve para mirar a expansão B a D sem inflar o score.
@@ -336,7 +378,7 @@ o movimento. Buscas medem interesse, não consumo: o Radar não entra no Occasio
   por grupo foi escolhida nos dados inteiros; rodada em só metade dos setores, a regra de
   significância escolhe grupos diferentes, então os offsets são uma melhora medida, não exata.
 - O modelo é aditivo: o melhor dia e turno é o mesmo (sábado à noite) para todo perfil.
-- Mensagens e a regra 3 trazem hipóteses marcadas como tais; nenhuma recomendação afirma
+- Mensagens e a regra 5 trazem hipóteses marcadas como tais; nenhuma recomendação afirma
   efeito causal.
 
 ## Estrutura do repositório

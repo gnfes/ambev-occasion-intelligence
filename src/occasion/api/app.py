@@ -81,7 +81,8 @@ class ContextoEntrada(BaseModel):
         description="renda mensal do domicílio em salários mínimos"
     )
     canal: Canal | None = Field(
-        default=None, description="canal da ativação; só muda o canal da regra 2"
+        default=None,
+        description="canal da ativação: escolhe a categoria na regra 4 e o canal da conversão (regra 3) e do plano de ativação",
     )
     versao_modelo: str | None = Field(
         default=None,
@@ -187,8 +188,16 @@ class Recomendacao(BaseModel):
     recommendation_reason: str
     recommendation_channel: str | None
     messages: list[str]
-    rule: int = Field(ge=1, le=5, description="regra do Decision Engine que decidiu")
+    rule: int = Field(ge=1, le=7, description="regra do Decision Engine que decidiu")
     best_moment: MelhorMomento = Field(description="dia e turno de maior score para o mesmo perfil")
+    association: dict = Field(
+        description="segmentos do contexto com lacuna de associação ou baixa presença do Guaraná"
+    )
+    activation_plan: dict | None = Field(
+        description="plano da recomendação: para quem, onde (cidades do mapa), quando (horário e "
+        "próximas 4 semanas), canal, mecânica e mensagem (hipóteses) e medição (linha de base, "
+        "sem meta); vazio quando não há ativação"
+    )
     class_position: PosicaoClasse = Field(
         description="posição dentro da classe de renda; não muda a regra, serve à expansão B a D"
     )

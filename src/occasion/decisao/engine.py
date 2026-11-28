@@ -6,20 +6,32 @@ escolher uma categoria de ativação com justificativa. Não é uma segunda
 previsão: sem histórico de ações e resultados, a escolha é uma regra
 documentada, e o sistema não afirma que uma ação vende mais que outra.
 
-Regras (aprovadas em 21/11; a primeira que vale decide):
+Regras (aprovadas em 21/11 e revistas em 27/11 para seguir a seção 7 do
+TAPI: a categoria depende do score, do contexto e da associação à marca no
+segmento, e não só da faixa; a primeira regra que vale decide):
 
 1. Faixa baixa fora da noite → sem ativação. 93% das ocasiões de pizza com
    refrigerante são à noite (POF 2017-18).
-2. Faixa alta → conversão no momento da pizza (combo pizza + Guaraná). O
-   guaraná aparece em só 21% dessas ocasiões (IC95 15% a 28%), sem diferença
-   significativa entre segmentos.
-3. Faixa média ou baixa, mas o mesmo perfil chega à faixa alta no seu
+2. Faixa alta + baixa presença da marca no segmento → awareness e construção
+   de associação, com criadores do segmento. O Guaraná já é fraco no
+   refrigerante em geral ali (`associacao`).
+3. Faixa alta + lacuna de associação no segmento → conversão: levar o
+   Guaraná para a pizza, pelo canal informado. O Guaraná é forte no
+   refrigerante do dia a dia e some na pizza (`associacao`).
+4. Faixa alta, sem sinal de associação → o canal decide: delivery →
+   ativação via delivery; pizzaria → ação na pizzaria; em casa ou sem canal →
+   combo para consumo em casa (66% das ocasiões são em casa, com delivery
+   incluído, POF 2017-18).
+5. Faixa média ou baixa, mas o mesmo perfil chega à faixa alta no seu
    melhor momento da semana → criar frequência: criadores online, depois
    pizzaria do bairro. Que a ação crie consumo novo, e não só mude o dia, é
    hipótese (sem dado).
-4. Faixa média e classe B a D → awareness e associação com criadores do
-   segmento. B a D somam 86% das ocasiões; a classe A, 5%.
-5. Resto → sem ativação (monitorar).
+6. Faixa média + (baixa presença, lacuna ou classe B a D) → awareness e
+   associação com criadores do segmento. B a D somam 86% das ocasiões.
+7. Resto → sem ativação (monitorar).
+
+Quando o segmento tem baixa presença e lacuna ao mesmo tempo, vale a baixa
+presença (regra 2 antes da 3), decisão de 27/11.
 
 Posição na classe (26/11): além da faixa nacional, a saída traz a posição
 do score entre as pessoas-turno da mesma classe de renda em 2017-18. A regra
@@ -43,11 +55,12 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
 
-from occasion.decisao import fontes
+from occasion.decisao import associacao, fontes, plano
 from occasion.modelagem import final
 from occasion.modelagem import incerteza as inc
 from occasion.modelagem.tabela import FAIXAS_IDADE, TURNOS
@@ -71,23 +84,37 @@ TOPO_NA_CLASSE = 90.0
 
 
 class Categoria(StrEnum):
-    CONVERSAO = "conversao_no_momento"
+    CONVERSAO_ASSOCIACAO = "conversao_associacao"
+    ATIVACAO_DELIVERY = "ativacao_delivery"
+    COMBO_EM_CASA = "combo_em_casa"
+    ACAO_PIZZARIA = "acao_pizzaria"
     CRIAR_FREQUENCIA = "criar_frequencia"
     AWARENESS = "awareness_associacao"
     SEM_ATIVACAO = "sem_ativacao"
 
 
 NOMES = {
-    Categoria.CONVERSAO: "Conversão no momento da pizza (combo pizza + Guaraná)",
+    Categoria.CONVERSAO_ASSOCIACAO: "Conversão: levar o Guaraná para a pizza",
+    Categoria.ATIVACAO_DELIVERY: "Ativação via delivery (combo pizza + Guaraná no pedido)",
+    Categoria.COMBO_EM_CASA: "Combo pizza + Guaraná para consumo em casa",
+    Categoria.ACAO_PIZZARIA: "Ação na pizzaria do bairro (pizza + Guaraná no salão)",
     Categoria.CRIAR_FREQUENCIA: "Criar frequência: criadores online, depois pizzaria do bairro",
-    Categoria.AWARENESS: "Awareness e associação com criadores do segmento",
+    Categoria.AWARENESS: "Awareness e construção de associação com criadores do segmento",
     Categoria.SEM_ATIVACAO: "Sem ativação",
 }
-
-CANAL_TEXTO = {
-    "delivery": "app de delivery",
-    "pizzaria": "pizzaria do bairro",
-    "em_casa": "consumo em casa (inclui delivery; a POF não separa delivery)",
+# Regra 4: o canal informado escolhe a categoria (sem canal, consumo em casa).
+POR_CANAL = {
+    "delivery": Categoria.ATIVACAO_DELIVERY,
+    "pizzaria": Categoria.ACAO_PIZZARIA,
+    "em_casa": Categoria.COMBO_EM_CASA,
+    None: Categoria.COMBO_EM_CASA,
+}
+ROTULO_SEGMENTO = {
+    "regiao": "região",
+    "tipo_area": "tipo de área",
+    "classe": "classe",
+    "faixa_idade": "faixa de idade",
+    "sexo": "sexo",
 }
 
 
@@ -154,6 +181,8 @@ class Recomendacao:
     messages: list[str]
     rule: int
     best_moment: dict
+    association: dict = field(default_factory=dict)
+    activation_plan: dict | None = None
     class_position: dict = field(default_factory=dict)
     uncertainty: dict = field(default_factory=dict)
     sources: list[dict] = field(default_factory=list)
@@ -206,6 +235,36 @@ def melhor_momento(
         "prob_faixa": ic["prob_faixa"] if ic else None,
         "faixa_estavel": len(set(ic["faixas_ic95"])) == 1 if ic else None,
     }
+
+
+def noite_de_semana(modelo: final.OccasionScore, contexto: Contexto) -> dict:
+    """Noite de segunda a quinta de maior score para o mesmo perfil (regra 5, frequência)."""
+    grade = [
+        Contexto(**{**asdict(contexto), "dia_semana": d, "turno": "noite"}) for d in (1, 2, 3, 4)
+    ]
+    score = modelo.prever(_linhas(modelo, grade))
+    i = int(np.argmax(score))
+    return {
+        "dia_semana": grade[i].dia_semana,
+        "dia": DIAS[grade[i].dia_semana],
+        "occasion_score": round(100 * float(score[i]), 3),
+        "classification": str(modelo.faixa(score[[i]])[0]),
+    }
+
+
+AREA_PERFIL = {
+    "capital": "capital",
+    "resto_rm": "região metropolitana",
+    "interior_urbano": "interior urbano",
+    "rural": "área rural",
+}
+
+
+def _perfil_texto(c: Contexto) -> str:
+    return (
+        f"{c.sexo}, {c.faixa_idade.replace('-', ' a ')} anos, classe {c.classe}, {c.regiao}, "
+        f"{AREA_PERFIL.get(c.tipo_area, c.tipo_area)}"
+    )
 
 
 NOMES_FAIXA = {"alta": "alta", "media": "média", "baixa": "baixa"}
@@ -278,7 +337,7 @@ def avaliar_incerteza(
 
 
 def _mensagens(dia_semana: int, categoria: Categoria) -> list[str]:
-    """Mensagens do momento em que se vai agir (na regra 3, o melhor momento do perfil)."""
+    """Mensagens do momento em que se vai agir (na regra 5, a melhor noite de semana)."""
     if categoria == Categoria.SEM_ATIVACAO:
         return []
     momento = "ritual de fim de semana" if dia_semana in (5, 6, 7) else "pausa no meio da semana"
@@ -299,17 +358,114 @@ def _texto_fatores(fatores: list[dict]) -> str:
     return "; ".join(partes)
 
 
-def regra(faixa: str, turno: str, classe: str, faixa_melhor_momento: str) -> tuple[int, Categoria]:
-    """As 5 regras, em ordem. Separada para ser testada sem o modelo."""
+def regra(
+    faixa: str,
+    turno: str,
+    classe: str,
+    faixa_melhor_momento: str,
+    baixa_presenca: bool = False,
+    lacuna: bool = False,
+    canal: str | None = None,
+) -> tuple[int, Categoria]:
+    """As 7 regras, em ordem. Separada para ser testada sem o modelo."""
     if faixa == "baixa" and turno != "noite":
         return 1, Categoria.SEM_ATIVACAO
+    if faixa == "alta" and baixa_presenca:
+        return 2, Categoria.AWARENESS
+    if faixa == "alta" and lacuna:
+        return 3, Categoria.CONVERSAO_ASSOCIACAO
     if faixa == "alta":
-        return 2, Categoria.CONVERSAO
+        return 4, POR_CANAL[canal]
     if faixa_melhor_momento == "alta":
-        return 3, Categoria.CRIAR_FREQUENCIA
-    if faixa == "media" and classe in CLASSES_EXPANSAO:
-        return 4, Categoria.AWARENESS
-    return 5, Categoria.SEM_ATIVACAO
+        return 5, Categoria.CRIAR_FREQUENCIA
+    if faixa == "media" and (baixa_presenca or lacuna or classe in CLASSES_EXPANSAO):
+        return 6, Categoria.AWARENESS
+    return 7, Categoria.SEM_ATIVACAO
+
+
+def _associacao_padrao() -> dict | None:
+    """Tabela gravada, relida quando o arquivo muda (sem reiniciar a API)."""
+    try:
+        versao = associacao.ARQUIVO.stat().st_mtime_ns
+    except FileNotFoundError:
+        versao = None
+    return _carregar_associacao(versao)
+
+
+@lru_cache(maxsize=1)
+def _carregar_associacao(versao: int | None) -> dict | None:
+    return associacao.carregar() if versao is not None else None
+
+
+def _segmentos(contexto: Contexto) -> dict[str, str]:
+    return {
+        "regiao": contexto.regiao,
+        "tipo_area": contexto.tipo_area,
+        "classe": contexto.classe,
+        "faixa_idade": contexto.faixa_idade,
+        "sexo": contexto.sexo,
+    }
+
+
+AREA_TEXTO = {
+    "capital": "nas capitais",
+    "resto_rm": "no resto das regiões metropolitanas",
+    "interior_urbano": "no interior urbano",
+    "rural": "na área rural",
+}
+
+
+def _segmento_texto(dimensao: str, valor: str) -> str:
+    """Segmento em português corrido ("no Nordeste", "na classe B")."""
+    if dimensao == "regiao":
+        return f"no {valor}"
+    if dimensao == "tipo_area":
+        return AREA_TEXTO.get(valor, valor)
+    if dimensao == "classe":
+        return f"na classe {valor}"
+    if dimensao == "faixa_idade":
+        return f"na faixa de {valor.replace('-', ' a ')} anos"
+    if dimensao == "sexo":
+        return {"homem": "entre homens", "mulher": "entre mulheres"}.get(valor, f"sexo {valor}")
+    return f"{dimensao} = {valor}"
+
+
+def _resumo_segmento(s: dict) -> dict:
+    return {
+        "segmento": f"{ROTULO_SEGMENTO[s['dimensao']]} = {s['valor']}",
+        "segmento_texto": _segmento_texto(s["dimensao"], s["valor"]),
+        "guarana_refri_geral_pct": s["refri_geral"]["pct"],
+        "guarana_refri_geral_ic95": s["refri_geral"]["ic95"],
+        "guarana_na_pizza_pct": s["pizza"]["pct"],
+        "guarana_na_pizza_ic95": s["pizza"]["ic95"],
+        "lacuna_pp": s["lacuna_pp"]["valor"],
+        "lacuna_ic95": s["lacuna_pp"]["ic95"],
+        "ocasioes_pizza": s["pizza"]["n"],
+    }
+
+
+def _br(x: float) -> str:
+    return f"{x:.1f}".replace(".", ",")
+
+
+def _texto_lacuna(segs: list[dict]) -> str:
+    return ". ".join(
+        f"{s['segmento_texto'][0].upper() + s['segmento_texto'][1:]}, o Guaraná está em {_br(s['guarana_refri_geral_pct'])}% do "
+        f"refrigerante em geral e em {_br(s['guarana_na_pizza_pct'])}% das ocasiões de pizza, "
+        f"lacuna de {_br(s['lacuna_pp'])} pontos (IC95 {_br(s['lacuna_ic95'][0])} a "
+        f"{_br(s['lacuna_ic95'][1])})"
+        for s in segs
+    )
+
+
+def _texto_presenca(segs: list[dict], brasil: float | None) -> str:
+    ref = f", contra {_br(brasil)}% no Brasil" if brasil is not None else ""
+    return ". ".join(
+        f"{s['segmento_texto'][0].upper() + s['segmento_texto'][1:]}, o Guaraná está em {_br(s['guarana_refri_geral_pct'])}% do "
+        f"refrigerante em geral (IC95 {_br(s['guarana_refri_geral_ic95'][0])} a "
+        f"{_br(s['guarana_refri_geral_ic95'][1])}){ref}"
+        for s in segs
+    )
 
 
 def posicao_na_classe(modelo: final.OccasionScore, score: float, classe: str) -> dict:
@@ -330,7 +486,13 @@ def decidir(
     modelo: final.OccasionScore,
     n_fatores: int = 3,
     incerteza: inc.Incerteza | None = None,
+    tabela_associacao: dict | None = None,
 ) -> Recomendacao:
+    """Score, fatores e categoria de ativação de um contexto.
+
+    `tabela_associacao` None usa a tabela gravada (`associacao.ARQUIVO`); um dict vazio
+    desliga os sinais de associação (regras 2, 3 e o critério de associação da 6).
+    """
     linha = _linhas(modelo, [contexto])
     score = float(modelo.prever(linha)[0])
     faixa = str(modelo.faixa(np.array([score]))[0])
@@ -342,15 +504,52 @@ def decidir(
             f["valor"] = contexto.sexo
     melhor = melhor_momento(modelo, contexto, incerteza)
     incerto = avaliar_incerteza(modelo, incerteza, linha, contexto.classe, faixa)
-    n, categoria = regra(faixa, contexto.turno, contexto.classe, melhor["classification"])
+    tabela = _associacao_padrao() if tabela_associacao is None else tabela_associacao
+    # Os sinais foram medidos em 20 a 44 anos; fora disso o Engine não os usa.
+    medido = contexto.faixa_idade in associacao.FAIXAS_MEDIDAS
+    sinal = associacao.sinais(tabela if medido else None, _segmentos(contexto))
+    lacuna = [_resumo_segmento(s) for s in sinal["lacuna"]]
+    presenca = [_resumo_segmento(s) for s in sinal["baixa_presenca"]]
+    brasil = tabela["brasil"] if tabela and medido else None
+    n, categoria = regra(
+        faixa,
+        contexto.turno,
+        contexto.classe,
+        melhor["classification"],
+        baixa_presenca=bool(presenca),
+        lacuna=bool(lacuna),
+        canal=contexto.canal,
+    )
 
-    canal = None
-    if categoria == Categoria.CONVERSAO:
-        canal = CANAL_TEXTO[contexto.canal or "em_casa"]
-    elif categoria == Categoria.CRIAR_FREQUENCIA:
-        canal = "criadores de conteúdo (online), depois pizzaria do bairro (local)"
-    elif categoria == Categoria.AWARENESS:
-        canal = "criadores de conteúdo do segmento"
+    posicao = posicao_na_classe(modelo, score, contexto.classe)
+    # Regra 5: a frequência se cria numa noite de semana (a melhor de segunda a quinta).
+    nds = noite_de_semana(modelo, contexto) if categoria == Categoria.CRIAR_FREQUENCIA else None
+    if nds and nds["classification"] == "baixa":
+        nds = None  # noite de semana fraca: a ação fica no melhor momento do perfil
+    agir = (
+        {"dia_semana": nds["dia_semana"], "dia": nds["dia"], "turno": "noite"}
+        if nds
+        else {"dia_semana": melhor["dia_semana"], "dia": melhor["dia"], "turno": melhor["turno"]}
+        if categoria == Categoria.CRIAR_FREQUENCIA
+        else {
+            "dia_semana": contexto.dia_semana,
+            "dia": DIAS[contexto.dia_semana],
+            "turno": contexto.turno,
+        }
+    )
+    plano_ativacao = plano.montar(
+        categoria=categoria.value,
+        contexto=contexto,
+        perfil_texto=_perfil_texto(contexto),
+        percentil=posicao.get("percentil_na_classe"),
+        lacuna=lacuna,
+        presenca=presenca,
+        tabela=tabela,
+        momento=agir,
+        noite_de_semana=nds,
+        medido=medido,
+    )
+    canal = plano_ativacao["canal"]["valor"] if plano_ativacao else None
 
     momento = f"{DIAS[contexto.dia_semana]}, {contexto.turno}"
     ic = incerto["occasion_score_ic95"]
@@ -365,32 +564,55 @@ def decidir(
             f"{100 * incerto['prob_faixa'][faixa]:.0f}% das reamostragens); a regra usa o score "
             "pontual."
         )
-    if n == 3 and melhor["faixa_estavel"] is False:
+    if n == 5 and melhor["faixa_estavel"] is False:
         base += (
             f" Atenção: o intervalo do melhor momento cruza o corte da faixa alta (alta em "
-            f"{100 * melhor['prob_faixa']['alta']:.0f}% das reamostragens); a regra 3 usa o "
+            f"{100 * melhor['prob_faixa']['alta']:.0f}% das reamostragens); a regra 5 usa o "
             "score pontual."
         )
+    ref_br = brasil["refri_geral"]["pct"] if brasil else None
+    casa = brasil["em_casa"]["pct"] if brasil else None
     motivos = {
         1: "Faixa baixa fora da noite: 93% das ocasiões de pizza com refrigerante são à noite.",
-        2: "Faixa alta: a ocasião é provável, e o guaraná aparece em só 21% delas "
-        "(IC95 15% a 28%, POF 2017-18), sem segmento que difira disso.",
-        3: f"O momento pedido é fraco, mas o mesmo perfil chega à faixa alta em "
+        2: "Faixa alta num segmento onde o Guaraná já é fraco no refrigerante em geral. "
+        f"{_texto_presenca(presenca, ref_br)}. Antes de converter na pizza, é preciso presença e "
+        "associação.",
+        3: "Faixa alta num segmento onde o Guaraná é forte no refrigerante do dia a dia, mas some "
+        f"na pizza. {_texto_lacuna(lacuna)}. A marca já está na casa; falta ligá-la à pizza.",
+        4: "Faixa alta, sem sinal de lacuna nem de baixa presença do Guaraná no segmento: "
+        + (
+            f"o canal informado ({plano.CANAL_PLANO[contexto.canal]}) decide a ação."
+            if contexto.canal
+            else "sem canal informado, a ação é para consumo em casa"
+            + (f" ({_br(casa)}% das ocasiões são em casa, com delivery incluído)." if casa else ".")
+        ),
+        5: f"O momento pedido é fraco, mas o mesmo perfil chega à faixa alta em "
         f"{melhor['dia']}, {melhor['turno']} (score {melhor['occasion_score']:.2f}). Há afinidade "
-        "para criar frequência; que a ação gere consumo novo é hipótese (sem dado).",
-        4: f"Faixa média na classe {contexto.classe}: as classes B a D somam 86% das ocasiões "
-        "(POF 2017-18), e a Ambev quer expandir além da classe A.",
-        5: (
-            f"Faixa média na classe {contexto.classe}, fora das classes B a D, e sem momento da "
-            "semana em faixa alta para este perfil."
+        "para criar frequência; que a ação gere consumo novo é hipótese (sem dado)."
+        + (
+            f" A ação vai para {nds['dia']} à noite, a melhor noite de segunda a quinta deste "
+            f"perfil (score {nds['occasion_score']:.2f}, faixa "
+            f"{NOMES_FAIXA[nds['classification']]})."
+            if nds
+            else ""
+        ),
+        6: "Faixa média: "
+        + (
+            f"Guaraná fraco no refrigerante em geral. {_texto_presenca(presenca, ref_br)}."
+            if presenca
+            else f"lacuna de associação. {_texto_lacuna(lacuna)}."
+            if lacuna
+            else f"classe {contexto.classe}, e as classes B a D somam 86% das ocasiões "
+            "(POF 2017-18); a Ambev quer expandir além da classe A."
+        ),
+        7: (
+            f"Faixa média na classe {contexto.classe}, fora das classes B a D, sem sinal de "
+            "associação e sem momento da semana em faixa alta para este perfil."
             if faixa == "media"
             else "Score baixo e sem momento da semana em faixa alta para este perfil."
         ),
     }
-    mensagens = _mensagens(
-        melhor["dia_semana"] if categoria == Categoria.CRIAR_FREQUENCIA else contexto.dia_semana,
-        categoria,
-    )
+    mensagens = _mensagens(agir["dia_semana"], categoria)
     return Recomendacao(
         occasion_score=round(100 * score, 3),
         classification=faixa,
@@ -402,9 +624,22 @@ def decidir(
         messages=mensagens,
         rule=n,
         best_moment=melhor,
-        class_position=posicao_na_classe(modelo, score, contexto.classe),
+        association={
+            "disponivel": bool(tabela) and medido,
+            "lacuna": lacuna,
+            "baixa_presenca": presenca,
+            "brasil_guarana_refri_geral_pct": ref_br,
+        },
+        activation_plan=plano_ativacao,
+        class_position=posicao,
         uncertainty=incerto,
-        sources=fontes.fontes_da_resposta(n, com_mensagens=bool(mensagens)),
+        sources=fontes.fontes_da_resposta(
+            n,
+            com_mensagens=bool(mensagens),
+            com_associacao=bool(lacuna or presenca),
+            cita_em_casa=contexto.canal is None and casa is not None,
+            plano=plano_ativacao,
+        ),
         limitations=list(fontes.LIMITES),
         model_metadata={
             k: modelo.metadata.get(k) for k in ("modelo", "versao", "treinado_em", "features")
