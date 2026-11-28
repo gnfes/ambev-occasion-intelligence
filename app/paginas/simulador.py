@@ -232,6 +232,24 @@ with esq:
                 )
             st.markdown(f"**Canal:** {cn['valor']}")
             st.caption(cn["base"])
+            cr = plano.get("criador")
+            if cr:
+                st.markdown(
+                    f"**Criador:** {cr['nome'].lower()}, {cr['porte']}, {cr['plataforma']}. "
+                    f"Nicho: {cr['nicho']}. Custo por post: {cr['custo_por_post']['faixa']} "
+                    f"({cr['custo_por_post']['natureza']})."
+                )
+                for x in cr["por_que"]:
+                    fonte = f" ({x['fonte']['titulo']}, {x['fonte']['ano']})" if x["fonte"] else ""
+                    st.caption(f"{x['texto']}{fonte}")
+                if cr["exemplos"]:
+                    st.caption(
+                        "Exemplo: "
+                        + "; ".join(f"{e['nome']}: {e['nota']}" for e in cr["exemplos"])
+                        + f". {cr['natureza'].capitalize()}."
+                    )
+                elif cr["sem_exemplo"]:
+                    st.caption(f"Sem exemplo: {cr['sem_exemplo']}.")
             st.markdown(f"**Mecânica (hipótese):** {plano['mecanica']['texto']}")
             st.markdown(f"**Mensagem (hipótese):** {plano['mecanica']['mensagem']}")
             if med["linha_de_base_pct"] is not None:

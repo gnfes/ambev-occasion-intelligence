@@ -92,6 +92,14 @@ FONTES: dict[str, dict] = {
         "url": f"{REPO}/docs/relatorios/trend_radar.md",
         "detalhe": f"{REPO}/data/referencia/radar_alertas.json",
     },
+    "criadores": {
+        "numero": "Perfil de criador (nicho, porte, plataforma, custo por post) e exemplos",
+        "fonte": "Pesquisas de mercado de influência (Influency.me, YouPix, HypeAuditor), por "
+        "matérias que as citam; cada número traz a própria fonte no plano",
+        "ano": "2025 e 2026",
+        "url": f"{REPO}/data/referencia/perfis_criadores.json",
+        "detalhe": f"{REPO}/src/occasion/decisao/criadores.py",
+    },
     "zero_worldpanel": {
         "numero": "Refrigerante zero foi de 8,8% para 14,4% do valor da categoria",
         "fonte": "Worldpanel by Numerator, Consumer Insights 3º tri 2025, citado por "
@@ -165,6 +173,8 @@ def fontes_da_resposta(
             chaves.append("inicio_19_21")
         if plano["quando"]["proximas_4_semanas"]:
             chaves.append("radar")
+        if plano.get("criador"):
+            chaves.append("criadores")
         if "associacao" not in chaves and plano["medicao"]["linha_de_base_pct"] is not None:
             chaves.append("associacao")
     return [{"id": k, **FONTES[k]} for k in chaves]
