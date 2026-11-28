@@ -229,3 +229,9 @@ def test_regra_7_na_faixa_media_nao_diz_score_baixo(modelo, monkeypatch):
     r = e.decidir(c, modelo, tabela_associacao=TABELA)
     assert (r.rule, r.classification) == (7, "media")
     assert "fora das classes B a D" in r.recommendation_reason
+
+
+def test_sem_intervalo_nao_cita_a_fonte_do_intervalo(modelo):
+    c = e.Contexto("noite", 6, "Sudeste", "interior_urbano", "25-29", "homem", 8)
+    r = e.decidir(c, modelo, tabela_associacao=TABELA, incerteza=None)
+    assert "intervalo" not in {f["id"] for f in r.sources}

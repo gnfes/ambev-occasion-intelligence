@@ -67,8 +67,17 @@ entrada = {
 try:
     r = cliente.prever(tuple(entrada.items()))
 except cliente.ErroApi as erro:
-    st.error(str(erro))
-    st.stop()
+    if "409" not in str(erro):
+        st.error(str(erro))
+        st.stop()
+    # A API trocou de modelo: os metadados em cache estão velhos. Relê e tenta de novo.
+    cliente.modelo.clear()
+    entrada["versao_modelo"] = cliente.modelo()["versao"]
+    try:
+        r = cliente.prever(tuple(entrada.items()))
+    except cliente.ErroApi as erro2:
+        st.error(str(erro2))
+        st.stop()
 
 media = 100 * meta["taxa_media_2017_18"]
 faixa = r["classification"]

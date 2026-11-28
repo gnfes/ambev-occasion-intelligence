@@ -77,7 +77,10 @@ def pontuar(perfil: pd.DataFrame, modelo: final.OccasionScore | None = None) -> 
     for d in delta:
         p_semana += prob(base + d)
 
-    classe = pd.Series(perfil["renda_mensal"] / SALARIO_MINIMO_2022).map(classe_de_renda)
+    # Renda ausente fica sem classe (classe_de_renda(NaN) cairia na classe A).
+    classe = pd.Series(perfil["renda_mensal"] / SALARIO_MINIMO_2022).map(
+        lambda r: classe_de_renda(r) if pd.notna(r) else None
+    )
     df = perfil.assign(
         w=perfil["pessoas"],
         sab=p_sab * perfil["pessoas"],

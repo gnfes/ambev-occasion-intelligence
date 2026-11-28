@@ -12,4 +12,8 @@ for _ in $(seq 60); do
   curl -sf "$OCCASION_API_URL/health" >/dev/null && break
   sleep 1
 done
+if ! curl -sf "$OCCASION_API_URL/health" >/dev/null; then
+  echo "A API não respondeu em $OCCASION_API_URL/health em 60 s; veja o erro acima." >&2
+  exit 1
+fi
 uv run streamlit run app/streamlit_app.py

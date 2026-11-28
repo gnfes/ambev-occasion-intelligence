@@ -87,7 +87,7 @@ def _tendencia_e_fatores(a: dict, t: dict, serie: pd.DataFrame) -> None:
             f"{_pct(marca['variacao_anual_pct'])} contra o ano anterior."
         )
 
-    serie = pd.DataFrame(detalhe["serie"])
+    serie = serie.copy()
     if not serie.empty:
         serie["semana"] = pd.to_datetime(serie["semana"])
         st.line_chart(serie.set_index("semana")[["pizza"]], y_label="índice do Trends (0 a 100)")

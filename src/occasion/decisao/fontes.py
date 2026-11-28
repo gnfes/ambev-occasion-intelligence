@@ -147,9 +147,11 @@ def fontes_da_resposta(
     com_associacao: bool = False,
     cita_em_casa: bool = False,
     plano: dict | None = None,
+    com_intervalo: bool = True,
 ) -> list[dict]:
     """Fonte e ano de cada número que aparece numa recomendação."""
-    chaves = ["score", "intervalo", "media_populacao", *POR_REGRA.get(regra, [])]
+    chaves = ["score", *(["intervalo"] if com_intervalo else []), "media_populacao"]
+    chaves += POR_REGRA.get(regra, [])
     if regra in (2, 3, 6) and com_associacao:
         chaves.append("associacao")
     if regra == 6 and not com_associacao:

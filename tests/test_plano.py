@@ -101,3 +101,27 @@ def test_awareness_comeca_por_criadores_mesmo_com_canal(modelo):
     assert r.rule == 2
     assert r.recommendation_channel == r.activation_plan["canal"]["valor"]
     assert r.recommendation_channel.startswith("criadores")
+
+
+def test_janela_tira_as_semanas_que_ja_passaram():
+    import datetime as dt
+
+    j = plano.janela("SP", hoje=dt.date(2026, 12, 15))
+    assert j["de"] == "2026-12-13" and j["ate"] == "2026-12-26"
+
+
+def test_regra_5_sem_noite_de_semana_nao_fala_em_noite_de_semana(modelo):
+    p = plano.montar(
+        categoria="criar_frequencia",
+        contexto=_ctx(turno="almoco", dia=2),
+        perfil_texto="perfil",
+        percentil=None,
+        lacuna=[],
+        presenca=[],
+        tabela=None,
+        momento={"dia_semana": 6, "dia": "sábado", "turno": "noite"},
+        noite_de_semana=None,
+        medido=False,
+    )
+    assert "noite de semana indicada" not in p["mecanica"]["texto"]
+    assert "não é só sábado" not in p["mecanica"]["mensagem"]
