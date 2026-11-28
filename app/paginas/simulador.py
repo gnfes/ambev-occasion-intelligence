@@ -188,6 +188,12 @@ if ic:
 for aviso in inc.get("avisos", []):
     st.warning(aviso)
 
+
+def _exemplo(e: dict) -> str:
+    cidade = f" ({e['cidade']})" if e.get("cidade") else ""
+    return f"{e['nome']}{cidade}: {e['nota']}"
+
+
 st.divider()
 esq, dir_ = st.columns([3, 2], gap="large")
 
@@ -243,13 +249,10 @@ with esq:
                     fonte = f" ({x['fonte']['titulo']}, {x['fonte']['ano']})" if x["fonte"] else ""
                     st.caption(f"{x['texto']}{fonte}")
                 if cr["exemplos"]:
-                    st.caption(
-                        "Exemplo: "
-                        + "; ".join(f"{e['nome']}: {e['nota']}" for e in cr["exemplos"])
-                        + f". {cr['natureza'].capitalize()}."
-                    )
+                    st.caption("Exemplo: " + "; ".join(_exemplo(e) for e in cr["exemplos"]) + ".")
                 elif cr["sem_exemplo"]:
                     st.caption(f"Sem exemplo: {cr['sem_exemplo']}.")
+                st.caption(f"{cr['natureza'].capitalize()}.")
             st.markdown(f"**Mecânica (hipótese):** {plano['mecanica']['texto']}")
             st.markdown(f"**Mensagem (hipótese):** {plano['mecanica']['mensagem']}")
             if med["linha_de_base_pct"] is not None:

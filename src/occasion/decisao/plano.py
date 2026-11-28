@@ -298,7 +298,7 @@ def montar(
             "proximas_4_semanas": janela(uf),
         },
         "canal": _canal_da_categoria(categoria, contexto, tab),
-        "criador": criadores.perfil(categoria, contexto.regiao),
+        "criador": criadores.perfil(categoria, contexto.regiao, contexto.tipo_area),
         "mecanica": {"texto": mecanica, "mensagem": mensagem, "natureza": HIPOTESE},
         "medicao": medicao(categoria, contexto, lacuna, presenca, tab),
     }

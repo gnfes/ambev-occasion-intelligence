@@ -77,7 +77,7 @@
       ],
       "custo_por_post": {"faixa": "R$ 500 a R$ 8 mil (micro); acima disso para médio", "fonte": "precos_2026", "natureza": "as fontes divergem; não é orçamento"},
       "exemplos": [
-        {"nome": "Mustache (Bernardo Soares)", "cidade": "São Paulo", "nota": "review de comida; sócio da pizzaria La Braciera desde 2025, o que serve para pizzaria parceira e pode limitar campanhas com outras redes", "fonte": "mustache_2025"}
+        {"nome": "Mustache (Bernardo Soares)", "cidade": "São Paulo", "regiao": "Sudeste", "nota": "review de comida; sócio da pizzaria La Braciera desde 2025, o que serve para pizzaria parceira e pode limitar campanhas com outras redes", "fonte": "mustache_2025"}
       ]
     },
     "entretenimento_alcance": {
@@ -91,7 +91,7 @@
       ],
       "custo_por_post": {"faixa": "R$ 8 mil a R$ 60 mil", "fonte": "precos_2026", "natureza": "as fontes divergem; não é orçamento"},
       "exemplos": [
-        {"nome": "Brino", "cidade": null, "nota": "já é embaixador do Guaraná; refez o comercial dos anos 90 (nostalgia). Alcance nacional, não específico do Sul", "fonte": "brino_2025"}
+        {"nome": "Brino", "cidade": null, "regiao": null, "nota": "já é embaixador do Guaraná; refez o comercial dos anos 90 (nostalgia). Alcance nacional, não específico do Sul", "fonte": "brino_2025"}
       ]
     },
     "comida_dia_a_dia": {

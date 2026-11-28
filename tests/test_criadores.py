@@ -28,8 +28,8 @@ def modelo():
     ],
 )
 def test_perfil_por_categoria_e_regiao(categoria, regiao, esperado):
-    assert criadores.chave_do_perfil(categoria, regiao) == esperado
-    p = criadores.perfil(categoria, regiao)
+    assert criadores.chave_do_perfil(categoria, regiao, "capital") == esperado
+    p = criadores.perfil(categoria, regiao, "capital")
     assert (p["perfil"] if p else None) == esperado
 
 
@@ -45,7 +45,7 @@ def test_toda_fonte_citada_existe_e_tem_link():
 
 
 def test_perfil_resolve_a_fonte_e_avisa_o_limite():
-    p = criadores.perfil("awareness_associacao", "Sul")
+    p = criadores.perfil("awareness_associacao", "Sul", "capital")
     assert p["exemplos"][0]["fonte"]["url"].startswith("https://")
     assert "sem checagem de contrato" in p["natureza"]
     assert "não é orçamento" in p["custo_por_post"]["natureza"]
@@ -69,3 +69,39 @@ def test_delivery_sem_sinal_fica_sem_criador(modelo):
 
 def test_fonte_de_criadores_registrada():
     assert "criadores" in fontes.FONTES
+
+
+def test_conversao_fora_da_capital_e_fora_do_norte_nordeste_fica_sem_perfil():
+    assert criadores.perfil("conversao_associacao", "Sudeste", "rural") is None
+
+
+def test_exemplo_de_outra_regiao_nao_aparece():
+    sudeste = criadores.perfil("conversao_associacao", "Sudeste", "capital")
+    sul = criadores.perfil("conversao_associacao", "Sul", "capital")
+    assert sudeste["exemplos"] and sudeste["sem_exemplo"] is None
+    assert sul["exemplos"] == [] and "no Sul" in sul["sem_exemplo"]
+
+
+def test_arquivo_invalido_tira_o_criador_sem_derrubar(tmp_path, monkeypatch, modelo):
+    ruim = tmp_path / "perfis.json"
+    ruim.write_text('{"fontes": {}, "perfis": {"x": {"nome": "x"}},}', encoding="utf-8")
+    monkeypatch.setattr(criadores, "ARQUIVO", ruim)
+    assert criadores.perfil("awareness_associacao", "Sul", "capital") is None
+    c = e.Contexto("noite", 6, "Sul", "capital", "25-29", "homem", 8)
+    assert e.decidir(c, modelo).activation_plan["criador"] is None
+
+
+def test_fonte_inexistente_invalida_o_arquivo():
+    dados = criadores.base()
+    quebrado = {**dados, "fontes": {k: v for k, v in dados["fontes"].items() if k != "brino_2025"}}
+    with pytest.raises(ValueError, match="brino_2025"):
+        criadores.validar(quebrado)
+
+
+def test_resposta_nao_altera_o_cache():
+    p = criadores.perfil("awareness_associacao", "Sul", "capital")
+    p["por_que"][0]["fonte"]["titulo"] = "alterado"
+    assert (
+        criadores.perfil("awareness_associacao", "Sul", "capital")["por_que"][0]["fonte"]["titulo"]
+        != "alterado"
+    )
