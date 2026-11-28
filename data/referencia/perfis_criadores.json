@@ -91,7 +91,7 @@
       ],
       "custo_por_post": {"faixa": "R$ 8 mil a R$ 60 mil", "fonte": "precos_2026", "natureza": "as fontes divergem; não é orçamento"},
       "exemplos": [
-        {"nome": "Brino", "cidade": null, "regiao": null, "nota": "já é embaixador do Guaraná; refez o comercial dos anos 90 (nostalgia). Alcance nacional, não específico do Sul", "fonte": "brino_2025"}
+        {"nome": "Brino", "cidade": null, "regiao": null, "nota": "já é embaixador do Guaraná; refez o comercial dos anos 90 (nostalgia). Alcance nacional, não é um criador da região", "fonte": "brino_2025"}
       ]
     },
     "comida_dia_a_dia": {

@@ -71,8 +71,38 @@ def test_fonte_de_criadores_registrada():
     assert "criadores" in fontes.FONTES
 
 
-def test_conversao_fora_da_capital_e_fora_do_norte_nordeste_fica_sem_perfil():
+def test_conversao_rural_fora_do_norte_nordeste_fica_sem_perfil():
     assert criadores.perfil("conversao_associacao", "Sudeste", "rural") is None
+    assert criadores.chave_do_perfil("conversao_associacao", "Sudeste", "interior_urbano") == (
+        "review_urbano"
+    )
+
+
+@pytest.mark.parametrize(
+    "estrago",
+    [
+        lambda d: d["perfis"]["comida_regional"].__setitem__("por_que", ["texto solto"]),
+        lambda d: d.__setitem__("perfis", []),
+        lambda d: d["fontes"]["youpix_2026"].pop("titulo"),
+        lambda d: d["perfis"]["review_urbano"]["custo_por_post"].pop("faixa"),
+        lambda d: d["perfis"]["review_urbano"]["exemplos"][0].pop("regiao"),
+    ],
+)
+def test_validar_pega_o_que_quebraria_a_saida(estrago):
+    dados = criadores.base()
+    estrago(dados)
+    with pytest.raises((ValueError, TypeError)):
+        criadores.validar(dados)
+
+
+def test_exemplo_nacional_nao_cita_outra_regiao():
+    p = criadores.perfil("awareness_associacao", "Nordeste", "capital")
+    assert all("Sul" not in e["nota"] for e in p["exemplos"])
+
+
+def test_base_devolve_copia():
+    criadores.base()["perfis"]["comida_regional"]["exemplos"].append({"nome": "x"})
+    assert criadores.base()["perfis"]["comida_regional"]["exemplos"] == []
 
 
 def test_exemplo_de_outra_regiao_nao_aparece():

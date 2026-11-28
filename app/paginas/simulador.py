@@ -189,9 +189,17 @@ for aviso in inc.get("avisos", []):
     st.warning(aviso)
 
 
+def _fonte(item: dict, antes: str = " (") -> str:
+    f = item.get("fonte")
+    if not f:
+        return ""
+    fim = "" if antes == ", " else ")"
+    return f"{antes}{f['titulo']}, {f['ano']}{fim}"
+
+
 def _exemplo(e: dict) -> str:
     cidade = f" ({e['cidade']})" if e.get("cidade") else ""
-    return f"{e['nome']}{cidade}: {e['nota']}"
+    return f"{e['nome']}{cidade}: {e['nota']}{_fonte(e)}"
 
 
 st.divider()
@@ -243,11 +251,10 @@ with esq:
                 st.markdown(
                     f"**Criador:** {cr['nome'].lower()}, {cr['porte']}, {cr['plataforma']}. "
                     f"Nicho: {cr['nicho']}. Custo por post: {cr['custo_por_post']['faixa']} "
-                    f"({cr['custo_por_post']['natureza']})."
+                    f"({cr['custo_por_post']['natureza']}{_fonte(cr['custo_por_post'], ', ')})."
                 )
                 for x in cr["por_que"]:
-                    fonte = f" ({x['fonte']['titulo']}, {x['fonte']['ano']})" if x["fonte"] else ""
-                    st.caption(f"{x['texto']}{fonte}")
+                    st.caption(f"{x['texto']}{_fonte(x)}")
                 if cr["exemplos"]:
                     st.caption("Exemplo: " + "; ".join(_exemplo(e) for e in cr["exemplos"]) + ".")
                 elif cr["sem_exemplo"]:
