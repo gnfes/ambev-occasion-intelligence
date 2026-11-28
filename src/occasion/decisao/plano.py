@@ -164,12 +164,14 @@ def janela(uf: str | None, hoje: dt.date | None = None) -> dict | None:
     if not semanas:
         return None
     fim = dt.date.fromisoformat(semanas[-1]) + dt.timedelta(days=6)
+    inteira = len(semanas) == len(pj["semanas"])
+    # Desvio e feriados foram calculados para as 4 semanas: numa janela encurtada saem.
     return {
         "uf": uf,
         "de": semanas[0],
         "ate": fim.isoformat(),
-        "feriados": list(pj.get("feriados", [])),
-        "desvio_previsto_busca_pct": pj.get("desvio_previsto_pct"),
+        "feriados": list(pj.get("feriados", [])) if inteira else [],
+        "desvio_previsto_busca_pct": pj.get("desvio_previsto_pct") if inteira else None,
         "natureza": "informativo: o Trend Radar não superou o baseline fora do tempo",
     }
 

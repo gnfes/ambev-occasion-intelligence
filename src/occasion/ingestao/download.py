@@ -87,9 +87,11 @@ def baixar_edicao(edicao: str, raiz: Path = RAW_DIR, extrair: bool = True) -> Pa
             baixar_arquivo(f"{FTP_BASE}/{info['pasta']}/{nome}", zip_local)
         if extrair:
             marca = destino_base / chave / ".extraido"
-            if not marca.exists() or marca.read_text().strip() != _assinatura(zip_local):
+            if not marca.exists() or marca.read_text(encoding="utf-8").strip() != _assinatura(
+                zip_local
+            ):
                 _extrair(zip_local, destino_base / chave)
-                marca.write_text(_assinatura(zip_local))
+                marca.write_text(_assinatura(zip_local), encoding="utf-8")
     return destino_base
 
 

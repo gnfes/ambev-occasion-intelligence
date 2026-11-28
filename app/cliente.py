@@ -16,7 +16,9 @@ API_URL = os.environ.get("OCCASION_API_URL", "http://localhost:8000").rstrip("/"
 
 
 class ErroApi(RuntimeError):
-    pass
+    def __init__(self, mensagem: str, status_code: int | None = None) -> None:
+        super().__init__(mensagem)
+        self.status_code = status_code
 
 
 def _pedir(metodo: str, rota: str, **kwargs) -> dict | list:
@@ -28,7 +30,7 @@ def _pedir(metodo: str, rota: str, **kwargs) -> dict | list:
             "Suba a API com `uv run uvicorn occasion.api.app:app` ou ajuste OCCASION_API_URL."
         ) from erro
     if r.status_code >= 400:
-        raise ErroApi(f"A API respondeu {r.status_code}: {r.text}")
+        raise ErroApi(f"A API respondeu {r.status_code}: {r.text}", status_code=r.status_code)
     return r.json()
 
 

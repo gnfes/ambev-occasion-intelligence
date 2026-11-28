@@ -448,7 +448,7 @@ def main(destino: Path = PROCESSED_DIR) -> None:
     # versionada que a API, o plano de ativação e o Radar leem.
     tabela_pontos = pd.DataFrame(pontos)
     tabela_pontos.to_csv(destino / "mapa_oportunidade_pontos.csv", index=False)
-    if destino == PROCESSED_DIR:
+    if destino.resolve() == PROCESSED_DIR.resolve():
         tabela_pontos.to_csv(ARQUIVO_PONTOS_REFERENCIA, index=False)
     print(ranking.groupby("recomendacao").size())
 

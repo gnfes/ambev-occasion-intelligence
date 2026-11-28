@@ -292,7 +292,7 @@ def rodar(saida: Path = PROCESSED_DIR, com_automl: bool = True) -> Path:
         f"\nMaior PR-AUC na seleção: **{melhor}**. Escolhido pela regra: **{escolhido}**.\n",
     ]
     relatorio = saida / "candidatos_occasion_score.md"
-    relatorio.write_text("\n".join(partes) + "\n")
+    relatorio.write_text("\n".join(partes) + "\n", encoding="utf-8")
     return relatorio
 
 

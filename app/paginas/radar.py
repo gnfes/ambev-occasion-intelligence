@@ -144,8 +144,8 @@ if m:
     st.markdown(
         f"**No Mapa de Oportunidade:** {m['municipios_no_mapa']} municípios, "
         f"{m['municipios_potencial_alto']} de potencial alto. Destaque: "
-        f"**{m['municipio_destaque']}**, {m['recomendacao_destaque']} "
-        f"(canal: {m['canal_destaque']})."
+        f"**{m['municipio_destaque']}**, {m['recomendacao_destaque']}"
+        + (f" (canal: {m['canal_destaque']})." if m.get("canal_destaque") else ".")
     )
 
 with st.expander("Validação fora do tempo e coeficientes"):

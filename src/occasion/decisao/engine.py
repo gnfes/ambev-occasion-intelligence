@@ -645,7 +645,7 @@ def decidir(
             plano=plano_ativacao,
             com_intervalo=bool(incerto["occasion_score_ic95"]),
         ),
-        limitations=list(fontes.LIMITES),
+        limitations=fontes.limites(com_intervalo=bool(incerto["occasion_score_ic95"])),
         model_metadata={
             k: modelo.metadata.get(k) for k in ("modelo", "versao", "treinado_em", "features")
         },

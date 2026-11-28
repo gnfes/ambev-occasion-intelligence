@@ -306,7 +306,7 @@ def rodar(saida: Path = PROCESSED_DIR, arquivo_modelo: Path = final.ARQUIVO_MODE
     ]
     saida.mkdir(parents=True, exist_ok=True)
     relatorio = saida / "avaliacao_occasion_score.md"
-    relatorio.write_text("\n".join(partes) + "\n")
+    relatorio.write_text("\n".join(partes) + "\n", encoding="utf-8")
     guarana.reset_index().to_csv(saida / "fatia_guarana_2017_2018.csv", index=False)
     (saida / "avaliacao_resumo.json").write_text(
         json.dumps(
@@ -317,7 +317,8 @@ def rodar(saida: Path = PROCESSED_DIR, arquivo_modelo: Path = final.ARQUIVO_MODE
             },
             ensure_ascii=False,
             indent=2,
-        )
+        ),
+        encoding="utf-8",
     )
     return relatorio
 

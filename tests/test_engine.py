@@ -235,3 +235,4 @@ def test_sem_intervalo_nao_cita_a_fonte_do_intervalo(modelo):
     c = e.Contexto("noite", 6, "Sudeste", "interior_urbano", "25-29", "homem", 8)
     r = e.decidir(c, modelo, tabela_associacao=TABELA, incerteza=None)
     assert "intervalo" not in {f["id"] for f in r.sources}
+    assert all("O intervalo mede" not in x for x in r.limitations)

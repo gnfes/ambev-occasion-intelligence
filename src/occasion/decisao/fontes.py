@@ -114,6 +114,10 @@ POR_REGRA: dict[int, list[str]] = {
     7: [],
 }
 
+LIMITE_INTERVALO = (
+    "O intervalo mede a variação da amostra da POF (bootstrap por setor). Ele não cobre erro de "
+    "especificação do modelo."
+)
 LIMITES: list[str] = [
     (
         "Os dados são da POF 2017-18, a mais recente com microdados de consumo; o hábito pode ter "
@@ -134,11 +138,13 @@ LIMITES: list[str] = [
         "É associação, não causa: o score diz onde a ocasião acontece, não que uma ação vai criar "
         "consumo novo."
     ),
-    (
-        "O intervalo mede a variação da amostra da POF (bootstrap por setor). Ele não cobre erro de "
-        "especificação do modelo."
-    ),
+    LIMITE_INTERVALO,
 ]
+
+
+def limites(com_intervalo: bool = True) -> list[str]:
+    """O que o modelo não sabe; sem intervalo na resposta, sai o limite do intervalo."""
+    return [x for x in LIMITES if com_intervalo or x != LIMITE_INTERVALO]
 
 
 def fontes_da_resposta(

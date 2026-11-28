@@ -103,11 +103,19 @@ def test_awareness_comeca_por_criadores_mesmo_com_canal(modelo):
     assert r.recommendation_channel.startswith("criadores")
 
 
-def test_janela_tira_as_semanas_que_ja_passaram():
+def test_janela_tira_as_semanas_que_ja_passaram(monkeypatch):
     import datetime as dt
 
+    pj = {"semanas": ["2026-11-29", "2026-12-06", "2026-12-13", "2026-12-20"],
+          "feriados": ["Natal"], "desvio_previsto_pct": 1.2}  # fmt: skip
+    monkeypatch.setattr(plano, "_radar", lambda: {"SP": {"proxima_janela": pj}})
+    cheia = plano.janela("SP", hoje=dt.date(2026, 11, 29))
+    assert cheia["feriados"] == ["Natal"] and cheia["desvio_previsto_busca_pct"] == 1.2
     j = plano.janela("SP", hoje=dt.date(2026, 12, 15))
     assert j["de"] == "2026-12-13" and j["ate"] == "2026-12-26"
+    # Desvio e feriados eram das 4 semanas: numa janela encurtada saem.
+    assert j["feriados"] == [] and j["desvio_previsto_busca_pct"] is None
+    assert plano.janela("SP", hoje=dt.date(2026, 12, 27)) is None
 
 
 def test_regra_5_sem_noite_de_semana_nao_fala_em_noite_de_semana(modelo):
