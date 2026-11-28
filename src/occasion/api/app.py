@@ -195,8 +195,8 @@ class Recomendacao(BaseModel):
     )
     activation_plan: dict | None = Field(
         description="plano da recomendação: para quem, onde (cidades do mapa), quando (horário e "
-        "próximas 4 semanas), canal, mecânica e mensagem (hipóteses) e medição (linha de base, "
-        "sem meta); vazio quando não há ativação"
+        "próximas 4 semanas), canal, perfil de criador (com fonte), mecânica e mensagem "
+        "(hipóteses) e medição (linha de base, sem meta); vazio quando não há ativação"
     )
     class_position: PosicaoClasse = Field(
         description="posição dentro da classe de renda; não muda a regra, serve à expansão B a D"

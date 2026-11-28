@@ -188,6 +188,20 @@ if ic:
 for aviso in inc.get("avisos", []):
     st.warning(aviso)
 
+
+def _fonte(item: dict, antes: str = " (") -> str:
+    f = item.get("fonte")
+    if not f:
+        return ""
+    fim = "" if antes == ", " else ")"
+    return f"{antes}{f['titulo']}, {f['ano']}{fim}"
+
+
+def _exemplo(e: dict) -> str:
+    cidade = f" ({e['cidade']})" if e.get("cidade") else ""
+    return f"{e['nome']}{cidade}: {e['nota']}{_fonte(e)}"
+
+
 st.divider()
 esq, dir_ = st.columns([3, 2], gap="large")
 
@@ -232,6 +246,20 @@ with esq:
                 )
             st.markdown(f"**Canal:** {cn['valor']}")
             st.caption(cn["base"])
+            cr = plano.get("criador")
+            if cr:
+                st.markdown(
+                    f"**Criador:** {cr['nome'].lower()}, {cr['porte']}, {cr['plataforma']}. "
+                    f"Nicho: {cr['nicho']}. Custo por post: {cr['custo_por_post']['faixa']} "
+                    f"({cr['custo_por_post']['natureza']}{_fonte(cr['custo_por_post'], ', ')})."
+                )
+                for x in cr["por_que"]:
+                    st.caption(f"{x['texto']}{_fonte(x)}")
+                if cr["exemplos"]:
+                    st.caption("Exemplo: " + "; ".join(_exemplo(e) for e in cr["exemplos"]) + ".")
+                elif cr["sem_exemplo"]:
+                    st.caption(f"Sem exemplo: {cr['sem_exemplo']}.")
+                st.caption(f"{cr['natureza'].capitalize()}.")
             st.markdown(f"**Mecânica (hipótese):** {plano['mecanica']['texto']}")
             st.markdown(f"**Mensagem (hipótese):** {plano['mecanica']['mensagem']}")
             if med["linha_de_base_pct"] is not None:

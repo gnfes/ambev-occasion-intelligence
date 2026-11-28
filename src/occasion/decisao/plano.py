@@ -15,6 +15,9 @@ vem marcado como tal. O plano não muda a regra nem a categoria: só detalha a d
 - Canal (é também o `recommendation_channel`): awareness e criar frequência começam por
   criadores; nas outras categorias, o canal informado. Sem canal, "em casa" só onde o IC95 da
   fatia em casa na região fica inteiro acima de 50%; nas outras regiões, casa e salão.
+- Criador (aprovado em 27/11/2026): o perfil de criador de conteúdo (nicho, porte e
+  plataforma) por categoria e região, com fonte; ver `decisao/criadores.py`. Delivery,
+  pizzaria e combo em casa ficam sem criador.
 - Mecânica e mensagem: uma por categoria, marcadas como hipótese (sem dado de efeito).
 - Medição: o indicador e a linha de base do segmento na POF. Sem meta: não há dado de efeito
   para defini-la.
@@ -28,6 +31,7 @@ from functools import lru_cache
 
 import pandas as pd
 
+from occasion.decisao import criadores
 from occasion.paths import REFERENCIA_DIR
 from occasion.radar.clima import CAPITAIS
 
@@ -294,6 +298,7 @@ def montar(
             "proximas_4_semanas": janela(uf),
         },
         "canal": _canal_da_categoria(categoria, contexto, tab),
+        "criador": criadores.perfil(categoria, contexto.regiao, contexto.tipo_area),
         "mecanica": {"texto": mecanica, "mensagem": mensagem, "natureza": HIPOTESE},
         "medicao": medicao(categoria, contexto, lacuna, presenca, tab),
     }

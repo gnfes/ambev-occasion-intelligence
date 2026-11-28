@@ -1,0 +1,111 @@
+{
+  "descricao": "Perfis de criador de conteúdo do plano de ativação (aprovados em 27/11/2026). O Engine escolhe o perfil pela categoria e pela região; nenhum número aqui vem da POF. Os números de mercado vêm de matérias que citam as pesquisas (o relatório original não estava acessível) e os exemplos não tiveram contrato nem disponibilidade checados.",
+  "levantado_em": "2026-11-27",
+  "fontes": {
+    "regionalismo_2025": {
+      "titulo": "Marketing de Influência e Regionalismo (Influency.me e Opinion Box)",
+      "ano": "2025",
+      "url": "https://www.abcdacomunicacao.com.br/influenciadores-regionais-ganham-destaque-entre-publico-mais-jovem-da-regiao-nordeste-aponta-pesquisa/",
+      "natureza": "fonte secundária: matéria que cita a pesquisa"
+    },
+    "portes_2026": {
+      "titulo": "Influency.me: micro e médios são os mais contratados (campanhas de 2023 a 2025)",
+      "ano": "2026",
+      "url": "https://www.meioemensagem.com.br/midia/micro-medios-quais-influenciadores-as-marcas-preferem",
+      "natureza": "fonte secundária: matéria que cita o estudo"
+    },
+    "youpix_2026": {
+      "titulo": "YouPix: Consumo e Influência 2026 (TikTok como canal de descoberta, 34% em 2025 e 51% em 2026; Instagram lidera em recomendação)",
+      "ano": "2026",
+      "url": "https://www.meioemensagem.com.br/midia/instagram-lidera-a-influencia-na-decisao-de-compra",
+      "natureza": "fonte secundária: matéria que cita a pesquisa"
+    },
+    "youpix_nielsen_2025": {
+      "titulo": "YouPix e Nielsen: 80% já compraram algo sugerido por creators; alimentos e bebidas é a 3ª categoria (29%)",
+      "ano": "2025 (campo em out/2024, 1.000 entrevistas)",
+      "url": "https://meioemensagem.com.br/marketing/influencia-80-dos-consumidores-compram-produtos-sugeridos-por-creators",
+      "natureza": "fonte secundária: matéria que cita a pesquisa"
+    },
+    "hypeauditor_2025": {
+      "titulo": "HypeAuditor e ESPM: Estado do Marketing de Influência no Brasil 2025 (engajamento por porte)",
+      "ano": "2025",
+      "url": "https://mundodomarketing.com.br/nano-influenciadores-sao-os-reis-das-taxas-de-engajamento-aponta-hypeauditor",
+      "natureza": "fonte secundária: matéria que cita o relatório"
+    },
+    "precos_2026": {
+      "titulo": "Tabelas de preço por post no Brasil (agregadores; as fontes divergem)",
+      "ano": "2026",
+      "url": "https://www.em.com.br/trends/2026/06/7442820-quanto-custa-contratar-um-influencer-no-brasil-veja-a-tabela-de-precos.html",
+      "natureza": "fonte secundária, sem metodologia publicada"
+    },
+    "brino_2025": {
+      "titulo": "Com Brino, Guaraná Antarctica recria comercial dos anos 90",
+      "ano": "2025 (05/11)",
+      "url": "https://www.meioemensagem.com.br/comunicacao/com-brino-guarana-antarctica-recria-comercial-dos-anos-90",
+      "natureza": "notícia"
+    },
+    "mustache_2025": {
+      "titulo": "Influenciador Mustache (Bernardo Soares) vira sócio da pizzaria La Braciera",
+      "ano": "2025 (março)",
+      "url": "https://fusoesaquisicoes.com/acontece-no-setor/transformar-influenciadores-em-socios-e-abordagem-inovadora-no-setor-gastronomico/",
+      "natureza": "notícia"
+    }
+  },
+  "perfis": {
+    "comida_regional": {
+      "nome": "Comida regional",
+      "nicho": "comida e rolê local, com sotaque e referências da região",
+      "porte": "micro (10 mil a 50 mil seguidores)",
+      "plataforma": "Instagram",
+      "por_que": [
+        {"texto": "73% dos nordestinos dizem seguir criadores regionais, o maior índice entre as regiões", "fonte": "regionalismo_2025"},
+        {"texto": "Norte e Nordeste são as regiões que mais buscam novos criadores regionais", "fonte": "regionalismo_2025"},
+        {"texto": "micro (10 mil a 50 mil) é o porte mais contratado no Instagram", "fonte": "portes_2026"}
+      ],
+      "custo_por_post": {"faixa": "R$ 500 a R$ 8 mil", "fonte": "precos_2026", "natureza": "as fontes divergem; não é orçamento"},
+      "exemplos": [],
+      "sem_exemplo": "não achamos um criador desse perfil com fonte pública; a busca fica com a agência (filtro por região, nicho e porte)"
+    },
+    "review_urbano": {
+      "nome": "Review de comida urbano",
+      "nicho": "review de pizzaria e delivery na cidade",
+      "porte": "micro a médio (10 mil a 500 mil seguidores)",
+      "plataforma": "Instagram",
+      "por_que": [
+        {"texto": "micro (10 mil a 50 mil) e médio (100 mil a 500 mil) são os portes mais contratados", "fonte": "portes_2026"},
+        {"texto": "alimentos e bebidas é a 3ª categoria em que a indicação de creators mais leva à compra (29%)", "fonte": "youpix_nielsen_2025"}
+      ],
+      "custo_por_post": {"faixa": "R$ 500 a R$ 8 mil (micro); acima disso para médio", "fonte": "precos_2026", "natureza": "as fontes divergem; não é orçamento"},
+      "exemplos": [
+        {"nome": "Mustache (Bernardo Soares)", "cidade": "São Paulo", "regiao": "Sudeste", "nota": "review de comida; sócio da pizzaria La Braciera desde 2025, o que serve para pizzaria parceira e pode limitar campanhas com outras redes", "fonte": "mustache_2025"}
+      ]
+    },
+    "entretenimento_alcance": {
+      "nome": "Entretenimento e humor com alcance",
+      "nicho": "humor, cotidiano e nostalgia",
+      "porte": "médio a grande (100 mil a 1 milhão de seguidores)",
+      "plataforma": "TikTok e Instagram",
+      "por_que": [
+        {"texto": "o TikTok como canal de descoberta passou de 34% em 2025 para 51% em 2026", "fonte": "youpix_2026"},
+        {"texto": "awareness pede alcance: o objetivo é a marca aparecer onde ela é fraca no refrigerante em geral", "fonte": null}
+      ],
+      "custo_por_post": {"faixa": "R$ 8 mil a R$ 60 mil", "fonte": "precos_2026", "natureza": "as fontes divergem; não é orçamento"},
+      "exemplos": [
+        {"nome": "Brino", "cidade": null, "regiao": null, "nota": "já é embaixador do Guaraná; refez o comercial dos anos 90 (nostalgia). Alcance nacional, não é um criador da região", "fonte": "brino_2025"}
+      ]
+    },
+    "comida_dia_a_dia": {
+      "nome": "Comida do dia a dia",
+      "nicho": "jantar de semana em casa, receita rápida, pedido de delivery",
+      "porte": "nano a micro (1 mil a 50 mil seguidores)",
+      "plataforma": "TikTok e Instagram, em série semanal",
+      "por_que": [
+        {"texto": "nano tem o maior engajamento: cerca de 9% no TikTok e 1,5% no Instagram", "fonte": "hypeauditor_2025"},
+        {"texto": "criar frequência pede presença repetida na mesma noite da semana; a série é hipótese, sem dado de efeito", "fonte": null}
+      ],
+      "custo_por_post": {"faixa": "R$ 500 a R$ 8 mil (micro); nano abaixo disso", "fonte": "precos_2026", "natureza": "as fontes divergem; não é orçamento"},
+      "exemplos": [],
+      "sem_exemplo": "perfil de nano e micro: a escolha é por cidade, com a agência"
+    }
+  }
+}
