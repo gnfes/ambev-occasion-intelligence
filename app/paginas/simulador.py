@@ -65,7 +65,16 @@ entrada = {
 }
 
 try:
-    r = cliente.prever(tuple(entrada.items()))
+    try:
+        r = cliente.prever(tuple(entrada.items()))
+    except cliente.ErroApi as erro:
+        if erro.status_code != 409:
+            raise
+        # A API trocou de modelo: os metadados em cache estão velhos. Relê e tenta de novo.
+        cliente.modelo.clear()
+        meta = cliente.modelo()
+        entrada["versao_modelo"] = meta["versao"]
+        r = cliente.prever(tuple(entrada.items()))
 except cliente.ErroApi as erro:
     st.error(str(erro))
     st.stop()

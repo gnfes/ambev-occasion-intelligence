@@ -317,7 +317,7 @@ def contexto_mapa(mapa: pd.DataFrame) -> dict[str, dict]:
             "ocasioes_semana": int(g["ocasioes_semana"].sum()),
             "municipio_destaque": str(topo["municipio"]),
             "recomendacao_destaque": str(topo["recomendacao"]),
-            "canal_destaque": str(topo["canal"]),
+            "canal_destaque": topo["canal"] if isinstance(topo["canal"], str) else None,
         }
     return out
 

@@ -275,7 +275,7 @@ def main() -> None:
     globais = metricas_globais(rec, antes, depois)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     tabela.round(4).to_csv(ARQUIVO_CSV, index=False)
-    ARQUIVO.write_text(relatorio(rec, tabela, globais, ajustes, modelo, rob))
+    ARQUIVO.write_text(relatorio(rec, tabela, globais, ajustes, modelo, rob), encoding="utf-8")
     shutil.copy(ARQUIVO, RELATORIO_DOCS)
     print(globais.round(4).to_string())
     print(rob.round(3).to_string())

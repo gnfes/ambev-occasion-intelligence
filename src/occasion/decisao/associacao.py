@@ -23,9 +23,9 @@ Daí saem duas leituras por segmento (aprovadas em 27/11/2026):
 
 A associação é inferida pela fatia do Guaraná, não medida por pesquisa de
 marca. Os IC95 vêm de bootstrap por setor censitário, com os pesos amostrais
-e cada dia da semana valendo 1/7. Os critérios ficam fixos aqui, sem ajuste
-depois de ver o resultado. A faixa de 30 a 34 anos passa no limite (IC95 da
-lacuna começa em 0,6 ponto) e fica de fora por decisão de 27/11: são 17
+e cada dia da semana valendo 1/7 no público de 20 a 44 anos. Os critérios
+ficam fixos aqui, sem ajuste depois de ver o resultado. A faixa de 30 a 34 anos passa no limite (IC95 da
+lacuna começa em 0,7 ponto) e fica de fora por decisão de 27/11: são 17
 comparações, e uma pode dar positivo por acaso.
 
 Grava `data/referencia/associacao_guarana.json`, lido pelo Engine.
@@ -74,13 +74,17 @@ def _classe(renda_sm: pd.Series) -> pd.Series:
 
 
 def _preparar(consumo: pd.DataFrame, areas: pd.DataFrame) -> pd.DataFrame:
-    """Itens de consumo do público, com peso por dia, segmento e turno."""
+    """Itens de consumo do público, com peso por dia, segmento e turno.
+
+    O fator que faz cada dia da semana valer 1/7 é calculado no próprio público
+    de 20 a 44 anos, para que a semana fique equilibrada nele.
+    """
+    consumo = consumo[(consumo["idade"] >= IDADE_MIN) & (consumo["idade"] <= IDADE_MAX)]
     dias = consumo.groupby(_PESSOA_DIA, as_index=False).agg(dia_semana=("dia_semana", "first"))
     pessoas = T._pessoas(consumo, "2017-18")
     fator = T._fator_dia(dias, pessoas)
     dias["w_dia"] = fator.to_numpy()
     c = consumo.merge(dias[[*_PESSOA_DIA, "w_dia"]], on=_PESSOA_DIA, how="left")
-    c = c[(c["idade"] >= IDADE_MIN) & (c["idade"] <= IDADE_MAX)].copy()
     c["w"] = c["peso"] * c["w_dia"].astype(float)
     c["classe"] = _classe(c["renda"] / T.SALARIO_MINIMO["2017-18"])
     limites = [9, *T.FAIXAS_IDADE.values()]
@@ -201,7 +205,8 @@ def calcular(consumo: pd.DataFrame, areas: pd.DataFrame, replicas: int = REPLICA
         "fonte": "POF 2017-18 (IBGE, microdados de consumo alimentar), cálculo do projeto",
         "publico": f"{IDADE_MIN} a {IDADE_MAX} anos",
         "metodo": (
-            "Fatia do Guaraná ponderada (peso amostral, cada dia da semana com 1/7); IC95 por "
+            "Fatia do Guaraná ponderada (peso amostral, cada dia da semana com 1/7 no público); "
+            "IC95 por "
             f"bootstrap conjunto de setores censitários ({replicas} réplicas, semente {SEMENTE})."
         ),
         "criterios": {

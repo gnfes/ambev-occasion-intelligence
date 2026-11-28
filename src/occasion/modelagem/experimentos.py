@@ -232,7 +232,7 @@ def rodar(saida: Path = PROCESSED_DIR) -> Path:
 
     saida.mkdir(parents=True, exist_ok=True)
     relatorio = saida / "experimentos_occasion_score.md"
-    relatorio.write_text("\n".join(partes) + "\n")
+    relatorio.write_text("\n".join(partes) + "\n", encoding="utf-8")
     te.assign(occasion_score=100 * score, score_baseline=100 * base_cal)[
         ["id_pessoa", "dia_registro", "turno", t.ALVO, "occasion_score", "score_baseline"]
     ].to_parquet(saida / "previsoes_2017_2018.parquet", index=False)
@@ -246,7 +246,8 @@ def rodar(saida: Path = PROCESSED_DIR) -> Path:
             },
             ensure_ascii=False,
             indent=2,
-        )
+        ),
+        encoding="utf-8",
     )
     return relatorio
 

@@ -270,12 +270,12 @@ fatia do Guaraná nas ocasiões de refrigerante em geral e nas de pizza com refr
 
 | segmento | Guaraná no refrigerante em geral | Guaraná na pizza | lacuna (pontos, IC95) | ocasiões de pizza | leitura |
 |---|---|---|---|---|---|
-| Norte | 34,0% | 7,8% | +26,2 (12,7 a 39,3) | 63 | lacuna |
-| Nordeste | 30,2% | 16,3% | +13,9 (5,8 a 20,7) | 147 | lacuna |
-| capital | 20,9% | 11,6% | +9,3 (1,7 a 15,5) | 163 | lacuna |
-| Sul | 17,6% (13,8 a 22,3) | 21,9% | −4,4 (−19,0 a 7,4) | 81 | baixa presença |
-| classe B | 14,2% (10,1 a 19,8) | 21,8% | −7,6 (−25,4 a 7,1) | 65 | baixa presença |
-| Brasil | 25,3% (22,8 a 27,8) | 21,1% | +4,3 (−3,5 a 11,3) | 444 | |
+| Norte | 33,7% | 7,9% | +25,9 (12,3 a 38,6) | 63 | lacuna |
+| Nordeste | 30,4% | 16,6% | +13,9 (5,7 a 20,7) | 147 | lacuna |
+| capital | 20,9% | 11,9% | +9,0 (1,6 a 15,3) | 163 | lacuna |
+| Sul | 17,5% (13,8 a 22,0) | 21,4% | −3,9 (−18,8 a 7,7) | 81 | baixa presença |
+| classe B | 14,3% (10,2 a 19,9) | 21,5% | −7,2 (−24,5 a 7,1) | 65 | baixa presença |
+| Brasil | 25,3% (22,9 a 27,8) | 21,1% | +4,2 (−3,3 a 11,2) | 444 | |
 
 Critérios fixos no código: lacuna = IC95 acima de zero e pelo menos 60 ocasiões de pizza; baixa
 presença = IC95 do segmento inteiro abaixo do IC95 nacional. Rural (33 ocasiões) e classe E (44)
@@ -292,7 +292,7 @@ só com dado medido:
 |---|---|
 | Para quem | perfil do contexto, segmento que disparou a regra, percentil na classe |
 | Onde | 3 cidades de maior prioridade do Mapa de Oportunidade na região (capitais se a área é capital; o mapa não separa região metropolitana de interior; área rural fica sem lista) |
-| Quando | dia e turno do contexto; à noite, 19h a 21h (70,4% das ocasiões começam aí, IC95 61,1 a 79,3, POF); na regra 5, a melhor noite de segunda a quinta do perfil; próximas 4 semanas da UF com feriados (Trend Radar, informativo) |
+| Quando | dia e turno do contexto; à noite, 19h a 21h (70,9% das ocasiões começam aí, IC95 61,9 a 79,4, POF); na regra 5, a melhor noite de segunda a quinta do perfil; próximas 4 semanas da UF com feriados (Trend Radar, informativo) |
 | Canal | o canal informado; sem canal, "em casa" só onde o IC95 da fatia em casa na região fica acima de 50% (Sudeste e Sul), senão casa e salão |
 | Criador | perfil de criador por categoria e região ([`perfis_criadores.json`](data/referencia/perfis_criadores.json)): comida regional, micro, na conversão do Norte e do Nordeste (73% dos nordestinos seguem criadores regionais, Influency.me/Opinion Box 2025); review de comida urbano na conversão das capitais das outras regiões (exemplo só quando é da mesma região); entretenimento com alcance no awareness; comida do dia a dia, nano a micro, em criar frequência. Delivery, pizzaria e combo ficam sem criador. Números de mercado de fontes secundárias; exemplos sem checagem de contrato |
 | Mecânica e mensagem | uma por categoria, marcadas como hipótese (sem dado de efeito) |

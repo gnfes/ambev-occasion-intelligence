@@ -242,7 +242,7 @@ class OccasionScore:
         caminho.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(self, caminho)
         caminho.with_suffix(".json").write_text(
-            json.dumps(self.metadata, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(self.metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         return caminho
 
