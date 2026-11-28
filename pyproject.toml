@@ -1,0 +1,63 @@
+[project]
+name = "ambev-occasion-intelligence"
+version = "0.1.0"
+description = "Occasion Intelligence: propensão de pizza com refrigerante a partir da POF/IBGE"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.163.1",
+    "httpx>=0.28.1",
+    "lightgbm>=4.7.0",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "pytrends>=4.9.2",
+    "scikit-learn>=1.9.1",
+    "shap>=0.54.1",
+    "streamlit>=1.67.0",
+    "uvicorn>=0.54.0",
+]
+
+[dependency-groups]
+automl = [
+    "flaml[automl]>=2.8.0",
+]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+eda = [
+    "ipykernel>=7.4.0",
+    "jupytext>=1.19.7",
+    "matplotlib>=3.11.2",
+    "nbconvert>=7.17.2",
+]
+mapa = [
+    "geopandas>=1.2.0",
+    "openpyxl>=3.1.5",
+]
+sintetico = [
+    "imbalanced-learn>=0.14.2",
+    "jax>=0.12.1",
+    "optax>=0.2.9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["dados: usa os microdados reais da POF (pula se não existirem)"]
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "occasion"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint.isort]
+# Módulos do app Streamlit, importados a partir da pasta app/.
+known-first-party = ["occasion", "cliente", "rotulos"]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebook (jupytext): a última expressão da célula é a saída exibida.
+"notebooks/*.py" = ["B018"]

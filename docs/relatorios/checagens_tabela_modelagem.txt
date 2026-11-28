@@ -1,0 +1,85 @@
+
+================ 2008_2009 ================
+linhas 735814 pessoas 34003 hora NA 0
+dias-pessoa 66903 | dias com pizza 1149
+dias por pessoa: {2: 32900, 1: 1103}
+
+[C] dias-pessoa por dia da semana (1=seg..7=dom): n, % ponderado, % dias com pizza
+dia_semana        1         2        3         4         5        6        7
+n           5013.00  14699.00  8686.00  17383.00  10314.00  6430.00  4378.00
+pct_pond       8.40     20.21    13.28     24.27     16.27    10.08     7.50
+pct_pizza      1.48      1.57     1.84      1.65      2.57     4.55     3.68
+
+[E] (dia2 - dia1) mod 7: {0: 0.0, 1: 0.001, 2: 0.88, 3: 0.062, 4: 0.031, 5: 0.015, 6: 0.011}
+
+[D] ocasioes de pizza por turno (n, % pond):
+turno  madrugada  manha  almoco  tarde   noite
+n            2.0  65.00   89.00  75.00  937.00
+pct          0.5   4.68    8.72   3.82   82.28
+madrugada por hora: {np.int8(0): 1, np.int8(1): 1}
+
+[A] unidades pessoa x dia x turno com pizza: 1166
+         n_pos  pct_pizza_com_refri_pond
+r_hora     654                     57.57
+r_pm1      668                     59.51
+r_pm2      681                     60.56
+r_turno    683                     60.59
+r_dia      804                     70.26
+
+[B] positivos por turno:
+tp       madrugada  manha  almoco  tarde  noite
+r_hora           1     17      42     38    556
+r_pm1            1     18      44     38    567
+r_turno          1     19      48     39    576
+  r_hora: dias-pessoa positivos=651 (1.30% pond.)
+  r_pm1: dias-pessoa positivos=665 (1.34% pond.)
+  r_turno: dias-pessoa positivos=680 (1.37% pond.)
+
+================ 2017_2018 ================
+linhas 1175390 pessoas 46164 hora NA 0
+dias-pessoa 85018 | dias com pizza 1675
+dias por pessoa: {2: 38854, 1: 7310}
+
+[C] dias-pessoa por dia da semana (1=seg..7=dom): n, % ponderado, % dias com pizza
+dia_semana         1         2         3         4        5        6         7
+n           13179.00  14668.00  14281.00  14799.00  7644.00  3862.00  16585.00
+pct_pond       15.26     17.36     16.17     17.72     9.27     4.85     19.37
+pct_pizza       2.28      1.50      1.79      1.83     3.36     5.60      4.22
+
+[E] (dia2 - dia1) mod 7: {0: 0.001, 1: 0.0, 2: 0.406, 3: 0.187, 4: 0.18, 5: 0.148, 6: 0.078}
+
+[D] ocasioes de pizza por turno (n, % pond):
+turno  madrugada  manha  almoco   tarde    noite
+n           2.00  85.00   62.00  105.00  1449.00
+pct         0.08   3.96    3.32    3.69    88.94
+madrugada por hora: {np.int8(3): 1, np.int8(4): 1}
+
+[A] unidades pessoa x dia x turno com pizza: 1697
+            n_pos  pct_pizza_com_refri_pond
+r_hora        798                     44.02
+r_pm1         811                     44.53
+r_pm2         826                     45.25
+r_turno       830                     46.34
+r_dia         945                     53.32
+r_refeicao    812                     44.25
+r_ref_hora    788                     43.38
+
+  comparacao com gabarito r_refeicao (mesmo tipo de refeicao no dia):
+  r_hora   acertos=789 falsos_pos=9 perdidos=23 precisao=0.989 cobertura=0.972
+  r_pm1    acertos=800 falsos_pos=11 perdidos=12 precisao=0.986 cobertura=0.985
+  r_pm2    acertos=805 falsos_pos=21 perdidos=7 precisao=0.975 cobertura=0.991
+  r_turno  acertos=803 falsos_pos=27 perdidos=9 precisao=0.967 cobertura=0.989
+  r_dia    acertos=812 falsos_pos=133 perdidos=0 precisao=0.859 cobertura=1.000
+  pares pizza-refri no mesmo turno: 904 | mesma hora: 838 | mesma refeicao: 845
+  diferenca de horas nos pares do mesmo turno: {0.0: 838, 1.0: 24, 2.0: 18, 3.0: 11, 4.0: 6, 5.0: 7}
+  refeicao por hora distinta dentro da mesma pessoa-dia-refeicao (todas as linhas):
+   n horas distintas por refeicao: {1: 301136, 2: 37612, 3: 11442, 4: 5455, 5: 3176, 6: 1817}
+
+[B] positivos por turno:
+tp       madrugada  manha  almoco  tarde  noite
+r_hora           1     15      16     31    735
+r_pm1            1     15      17     31    747
+r_turno          1     18      18     31    762
+  r_hora: dias-pessoa positivos=795 (1.16% pond.)
+  r_pm1: dias-pessoa positivos=808 (1.18% pond.)
+  r_turno: dias-pessoa positivos=827 (1.22% pond.)
