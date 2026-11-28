@@ -78,7 +78,7 @@ FONTES: dict[str, dict] = {
         "detalhe": f"{REPO}/data/referencia/mapa_oportunidade.csv",
     },
     "inicio_19_21": {
-        "numero": "70% das ocasiões de pizza com refrigerante começam entre 19h e 21h",
+        "numero": "71% das ocasiões de pizza com refrigerante começam entre 19h e 21h",
         "fonte": _POF_CALCULO,
         "ano": "2017-18",
         "url": POF_2017,

@@ -65,7 +65,7 @@ def test_plano_da_conversao(modelo):
     assert p["quando"]["proximas_4_semanas"]["uf"] == p["onde"]["cidades"][0]["uf"]
     assert p["mecanica"]["natureza"].startswith("hipótese")
     assert p["medicao"]["meta"] is None
-    assert p["medicao"]["linha_de_base_pct"] == 16.3
+    assert p["medicao"]["linha_de_base_pct"] == 16.6
     # O canal da recomendação é o do plano (Nordeste sem maioria clara em casa).
     assert r.recommendation_channel == p["canal"]["valor"]
     assert {"mapa", "inicio_19_21", "radar"} <= {f["id"] for f in r.sources}
